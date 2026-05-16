@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Icono de recibo">
+  <rect width="192" height="192" rx="42" fill="#1e40af" />
+  <path d="M54 50h84v92l-14-9-14 9-14-9-14 9-14-9-14 9z" fill="white" />
+  <path d="M74 78h44M74 98h44M74 118h28" stroke="#1e40af" stroke-width="10" stroke-linecap="round" />
+</svg>
