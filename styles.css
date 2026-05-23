@@ -51,6 +51,6 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
   .mobile-action-bar { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem; padding: .6rem; background: #fff; border-top: 1px solid var(--line); }
   .bar-link { text-decoration: none; background: #eef2f7; color: #344054; text-align: center; }
   .app-shell { padding-bottom: 5.6rem; }
-  .bbva-receipt { max-width: 430px; }
+  .bbva-receipt { max-width: 485px; }
   .bbva-card strong { font-size: 18px; }
 }
