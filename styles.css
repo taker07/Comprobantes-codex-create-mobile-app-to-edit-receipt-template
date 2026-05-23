@@ -27,22 +27,22 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
   border-radius: 0;
   padding: 1.35rem;
   border: none;
-  max-width: 488px;
+  max-width: 410px;
   margin: 0 auto;
 }
-.bbva-logo { display: block; width: 130px; height: auto; margin: 0 0 1.4rem; }
+.bbva-logo { display: block; width: 145px; height: 42px; object-fit: contain; object-position: left center; margin: 0 0 1.15rem; }
 .bbva-title {
   margin: 0 0 1.2rem;
-  font-size: 17px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   letter-spacing: .4px;
-  color: #173d68;
+  color: #0b4a8f;
 }
 .bbva-card { background: #fff; border-radius: 22px; padding: 1.05rem 1.15rem; margin-bottom: 1rem; }
-.bbva-card p { margin: 0 0 .2rem; color: #4b5563; font-size: 13px; font-weight: 400; }
-.bbva-card strong { display: block; margin: 0 0 .95rem; font-size: 39px; line-height: 1.05; font-weight: 600; color: #0f172a; letter-spacing: -.2px; }
+.bbva-card p { margin: 0 0 .2rem; color: #4b5563; font-size: 12px; font-weight: 400; }
+.bbva-card strong { display: block; margin: 0 0 .85rem; font-size: 17px; line-height: 1.25; font-weight: 700; color: #072146; letter-spacing: 0; }
 .bbva-card strong:last-child { margin-bottom: 0; }
-.bbva-footer { color: #6b7280; line-height: 1.55; font-size: 10px; margin: .75rem .75rem 0; }
+.bbva-footer { color: #6b7280; line-height: 1.55; font-size: 9px; margin: .75rem .55rem 0; }
 .mobile-action-bar { display: none; }
 
 @media (max-width: 900px) { .workspace { grid-template-columns: 1fr; } }
@@ -51,5 +51,5 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
   .mobile-action-bar { position: fixed; bottom: 0; left: 0; right: 0; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem; padding: .6rem; background: #fff; border-top: 1px solid var(--line); }
   .bar-link { text-decoration: none; background: #eef2f7; color: #344054; text-align: center; }
   .app-shell { padding-bottom: 5.6rem; }
-  .bbva-card strong { font-size: 34px; }
+  .bbva-card strong { font-size: 16px; }
 }
