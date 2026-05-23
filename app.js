@@ -104,7 +104,8 @@ const updatePreview = () => {
   const data = getFormData();
   const template = getTemplateFromForm();
 
-  preview.querySelector('[data-preview="bankBrand"]').textContent = template.bankBrand;
+  const bankLogo = preview.querySelector('[data-preview="bankLogo"]');
+  if (bankLogo) bankLogo.alt = template.bankBrand || 'BBVA';
   preview.querySelector('[data-preview="operationHeading"]').textContent = template.operationHeading;
   preview.querySelector('[data-preview="operationType"]').textContent = data.operationType || 'Transferencia a terceros';
   preview.querySelector('[data-preview="folio"]').textContent = data.folio || '0000000000';
