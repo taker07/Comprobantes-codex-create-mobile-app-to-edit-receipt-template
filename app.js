@@ -48,6 +48,8 @@ const sampleReceipt = {
 };
 
 let customTemplates = [];
+const LOGO_PRIMARY_SRC = 'bbva-logo.png';
+const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
 const getTemplates = () => [...defaultTemplates, ...customTemplates];
@@ -125,6 +127,34 @@ const updatePreview = () => {
   saveStatus.textContent = 'Guardado local';
 };
 
+const ensureLogoAvailable = async () => {
+  const logo = preview.querySelector('img.bbva-logo');
+  if (!logo) return;
+
+  logo.onerror = () => {
+    logo.src = LOGO_FALLBACK_SRC;
+  };
+
+  if (!logo.getAttribute('src')) logo.src = LOGO_PRIMARY_SRC;
+  if (logo.complete && logo.naturalWidth > 0) return;
+
+  await new Promise((resolve) => {
+    const done = () => resolve();
+    const timer = setTimeout(done, 1200);
+    logo.onload = () => {
+      clearTimeout(timer);
+      done();
+    };
+    logo.onerror = () => {
+      clearTimeout(timer);
+      logo.src = LOGO_FALLBACK_SRC;
+      done();
+    };
+  });
+
+  if (!logo.naturalWidth) logo.src = LOGO_FALLBACK_SRC;
+};
+
 const handleTemplateChange = () => {
   fillTemplateFields(getTemplateById(templateSelect.value));
   updatePreview();
@@ -157,6 +187,7 @@ const deleteCustomTemplate = () => {
 };
 
 const captureReceiptImage = async () => {
+  await ensureLogoAvailable();
   const img = preview.querySelector('img.bbva-logo');
   if (img && !img.complete) {
     await new Promise((resolve) => {
@@ -330,6 +361,7 @@ const initialize = () => {
   fillTemplateFields(template);
   setFormData({ ...initialData, templateId: template.id });
   updatePreview();
+  ensureLogoAvailable();
 };
 
 form.addEventListener('input', () => { saveStatus.textContent = 'Actualizando…'; updatePreview(); });
