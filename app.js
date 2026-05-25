@@ -37,7 +37,7 @@ const sampleReceipt = {
   folio: '0037466735',
   dateText: '16 mayo 2026',
   timeText: '12:27 h',
-  concept: 'x favor regresa depo',
+  concept: 'concepto',
   amountText: '$ 0.10',
   sourceAccount: '•5639',
   beneficiaryName: 'Omar Alejandro L',
@@ -104,7 +104,7 @@ const updatePreview = () => {
   const data = getFormData();
   const template = getTemplateFromForm();
 
-  const bankLogo = preview.querySelector('[data-preview="bankLogo"]');
+  const bankLogo = preview.querySelector('img.bbva-logo');
   if (bankLogo) bankLogo.alt = template.bankBrand || 'BBVA';
   preview.querySelector('[data-preview="operationHeading"]').textContent = template.operationHeading;
   preview.querySelector('[data-preview="operationType"]').textContent = data.operationType || 'Transferencia a terceros';
@@ -157,30 +157,120 @@ const deleteCustomTemplate = () => {
 };
 
 const captureReceiptImage = async () => {
-  const sourceCanvas = await html2canvas(preview, { backgroundColor: '#f2f2f2', scale: 2, useCORS: true, allowTaint: true });
+  const img = preview.querySelector('img.bbva-logo');
+  if (img && !img.complete) {
+    await new Promise((resolve) => {
+      img.onload = resolve;
+      img.onerror = resolve;
+    });
+  }
+
+  const inlineLogoDataUrl = async (imageEl) => {
+    if (!imageEl) return null;
+    try {
+      const sourceUrl = imageEl.currentSrc || imageEl.src;
+      if (!sourceUrl) return null;
+      const response = await fetch(sourceUrl, { cache: 'no-store' });
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      return await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.warn('No se pudo convertir el logo a data URL:', error);
+      return null;
+    }
+  };
+
+  const logoDataUrl = await inlineLogoDataUrl(img);
+  
+  const renderCanvas = async (onclone) =>
+    html2canvas(preview, {
+    backgroundColor: '#eef0f2',
+    scale: 2,
+    useCORS: false,
+    allowTaint: false,
+    imageTimeout: 15000,
+    logging: false,
+    foreignObjectRendering: false,
+    scrollX: 0,
+    scrollY: -window.scrollY,
+    windowWidth: document.documentElement.scrollWidth,
+    windowHeight: document.documentElement.scrollHeight,
+    onclone: (doc) => {
+      const clonedLogo = doc.querySelector('#receiptPreview img.bbva-logo');
+      if (clonedLogo && logoDataUrl) clonedLogo.src = logoDataUrl;
+      if (typeof onclone === 'function') onclone(doc);
+    },
+  });
+  
+  let sourceCanvas = await renderCanvas();
+  const isBlankCanvas = (canvas) => {
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+    const sampleW = Math.min(canvas.width, 80);
+    const sampleH = Math.min(canvas.height, 80);
+    const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) return false;
+    }
+    return true;
+  };
+
+  if (isBlankCanvas(sourceCanvas)) {
+    sourceCanvas = await renderCanvas((doc) => {
+      const clonedPreview = doc.querySelector('#receiptPreview');
+      if (clonedPreview) {
+        clonedPreview.style.position = 'fixed';
+        clonedPreview.style.left = '0';
+        clonedPreview.style.top = '0';
+        clonedPreview.style.zIndex = '2147483647';
+      }
+    });
+  }
   const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = 485;
-  outputCanvas.height = 1600;
+  outputCanvas.width = sourceCanvas.width;
+  outputCanvas.height = sourceCanvas.height;
   const ctx = outputCanvas.getContext('2d');
   if (ctx) {
-    ctx.fillStyle = '#f2f2f2';
+    ctx.fillStyle = '#eef0f2';
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
     ctx.imageSmoothingEnabled = true;
-
-    const sourceWidth = sourceCanvas.width;
-    const sourceHeight = sourceCanvas.height;
-    const ratio = Math.min(outputCanvas.width / sourceWidth, outputCanvas.height / sourceHeight);
-    const drawWidth = Math.round(sourceWidth * ratio);
-    const drawHeight = Math.round(sourceHeight * ratio);
-    const drawX = Math.round((outputCanvas.width - drawWidth) / 2);
-    const drawY = Math.round((outputCanvas.height - drawHeight) / 2);
-
-    ctx.drawImage(sourceCanvas, drawX, drawY, drawWidth, drawHeight);
+    ctx.drawImage(sourceCanvas, 0, 0);
+  }
+  if (isBlankCanvas(outputCanvas)) {
+    throw new Error('No se pudo renderizar el comprobante en imagen.');
   }
   return outputCanvas.toDataURL('image/png');
 };
-const downloadReceipt = async () => { const dataUrl = await captureReceiptImage(); const link = document.createElement('a'); link.href = dataUrl; link.download = 'comprobante.png'; link.click(); };
-const printReceiptImage = async () => { const dataUrl = await captureReceiptImage(); const w = window.open('', '_blank'); if (!w) return; w.document.write(`<img src="${dataUrl}" style="max-width:100%">`); w.document.close(); w.print(); };
+const downloadReceipt = async () => {
+  try {
+    const dataUrl = await captureReceiptImage();
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'comprobante.png';
+    link.click();
+  } catch (error) {
+    console.error(error);
+    alert('No se pudo exportar la imagen. Intenta de nuevo.');
+  }
+};
+const printReceiptImage = async () => {
+  try {
+    const dataUrl = await captureReceiptImage();
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<img src="${dataUrl}" style="max-width:100%">`);
+    w.document.close();
+    w.print();
+  } catch (error) {
+    console.error(error);
+    alert('No se pudo preparar la imagen para imprimir.');
+  }
+};
 
 
 const normalizeTemplate = (template) => ({
@@ -255,3 +345,4 @@ printButton.addEventListener('click', printReceiptImage);
 mobilePrintButton.addEventListener('click', printReceiptImage);
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
 initialize();
+

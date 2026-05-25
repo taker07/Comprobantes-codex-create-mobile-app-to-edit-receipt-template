@@ -61,7 +61,7 @@
                 <label>Fecha (texto)<input name="dateText" type="text" value="16 mayo 2026" /></label>
                 <label>Hora (texto)<input name="timeText" type="text" value="12:27 h" /></label>
               </div>
-              <label>Concepto<input name="concept" type="text" value="x favor regresa depo" /></label>
+              <label>Concepto<input name="concept" type="text" value="concepto" /></label>
               <label>Importe transferido<input name="amountText" type="text" value="$ 0.10" /></label>
               <label>Cuenta de origen<input name="sourceAccount" type="text" value="•5639" /></label>
               <label>Nombre del beneficiario<input name="beneficiaryName" type="text" value="Omar Alejandro L" /></label>
@@ -80,24 +80,26 @@
           </div>
 
           <article class="receipt bbva-receipt" id="receiptPreview">
-            <img class="bbva-logo" src="bbva-logo.jpg" alt="BBVA" data-preview="bankLogo" />
+            <img class="bbva-logo" src="bbva-logo.png" alt="BBVA" />
             <p class="bbva-title" data-preview="operationHeading">COMPROBANTE DE LA OPERACION</p>
 
-            <section class="bbva-card">
-              <p>Tipo de operación</p><strong data-preview="operationType"></strong>
-              <p>Folio de la operación</p><strong data-preview="folio"></strong>
-              <p>Fecha</p><strong data-preview="dateText"></strong>
-              <p>Hora</p><strong data-preview="timeText"></strong>
-              <p>Concepto</p><strong data-preview="concept"></strong>
-            </section>
+            <div class="receipt-card">
+              <section class="bbva-card">
+                <p>Tipo de operación</p><strong data-preview="operationType"></strong>
+                <p>Folio de la operación</p><strong data-preview="folio"></strong>
+                <p>Fecha</p><strong data-preview="dateText"></strong>
+                <p>Hora</p><strong data-preview="timeText"></strong>
+                <p>Concepto</p><strong data-preview="concept"></strong>
+              </section>
 
-            <section class="bbva-card"><p>Importe transferido</p><strong data-preview="amountText"></strong></section>
-            <section class="bbva-card"><p>Cuenta de origen</p><strong data-preview="sourceAccount"></strong></section>
-            <section class="bbva-card">
-              <p>Nombre del beneficiario</p><strong data-preview="beneficiaryName"></strong>
-              <p>Nombre del banco</p><strong data-preview="bankName"></strong>
-              <p>Cuenta de destino</p><strong data-preview="destinationAccount"></strong>
-            </section>
+              <section class="bbva-card"><p>Importe transferido</p><strong data-preview="amountText"></strong></section>
+              <section class="bbva-card"><p>Cuenta de origen</p><strong data-preview="sourceAccount"></strong></section>
+              <section class="bbva-card">
+                <p>Nombre del beneficiario</p><strong data-preview="beneficiaryName"></strong>
+                <p>Nombre del banco</p><strong data-preview="bankName"></strong>
+                <p>Cuenta de destino</p><strong data-preview="destinationAccount"></strong>
+              </section>
+            </div>
             <p class="bbva-footer" data-preview="footerText"></p>
           </article>
 
@@ -119,3 +121,4 @@
     <script src="app.js" type="module"></script>
   </body>
 </html>
+
