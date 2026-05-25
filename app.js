@@ -157,7 +157,16 @@ const deleteCustomTemplate = () => {
 };
 
 const captureReceiptImage = async () => {
+  const originalWidth = preview.style.width;
+  const originalMaxWidth = preview.style.maxWidth;
+  preview.style.width = '485px';
+  preview.style.maxWidth = '485px';
+
   const sourceCanvas = await html2canvas(preview, { backgroundColor: '#f2f2f2', scale: 2, useCORS: true, allowTaint: true });
+
+  preview.style.width = originalWidth;
+  preview.style.maxWidth = originalMaxWidth;
+
   const outputCanvas = document.createElement('canvas');
   outputCanvas.width = 485;
   outputCanvas.height = 1600;
@@ -167,11 +176,14 @@ const captureReceiptImage = async () => {
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
     ctx.imageSmoothingEnabled = true;
 
-    const sourceWidth = sourceCanvas.width;
-    const sourceHeight = sourceCanvas.height;
-    const ratio = Math.min(outputCanvas.width / sourceWidth, outputCanvas.height / sourceHeight);
-    const drawWidth = Math.round(sourceWidth * ratio);
-    const drawHeight = Math.round(sourceHeight * ratio);
+    const sourceWidth = 485;
+    const sourceHeight = Math.round((sourceCanvas.height / sourceCanvas.width) * 485);
+    let drawWidth = 485;
+    let drawHeight = sourceHeight;
+    if (sourceHeight > 1600) {
+      drawHeight = 1600;
+      drawWidth = Math.round((485 / sourceHeight) * 1600);
+    }
     const drawX = Math.round((outputCanvas.width - drawWidth) / 2);
     const drawY = Math.round((outputCanvas.height - drawHeight) / 2);
 
