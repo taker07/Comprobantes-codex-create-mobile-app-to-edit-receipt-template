@@ -244,14 +244,14 @@ const captureReceiptImage = async () => {
   if (isBlankCanvas(outputCanvas)) {
     throw new Error('No se pudo renderizar el comprobante en imagen.');
   }
-  return outputCanvas.toDataURL('image/png');
+  return outputCanvas.toDataURL('image/jpeg', 0.95);
 };
 const downloadReceipt = async () => {
   try {
     const dataUrl = await captureReceiptImage();
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = 'comprobante.png';
+    link.download = 'comprobante.jpg';
     link.click();
   } catch (error) {
     console.error(error);
