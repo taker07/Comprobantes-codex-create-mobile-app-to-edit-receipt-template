@@ -277,7 +277,7 @@ const captureReceiptImage = async () => {
 
     // iOS/Safari fallback: html2canvas can miss <img> in exports even when preview shows it.
     // Draw logo explicitly using DOM coordinates mapped to canvas coordinates.
-    if (img && img.complete && img.naturalWidth > 0) {
+    if (img && img.getBoundingClientRect().width > 0 && img.getBoundingClientRect().height > 0) {
       try {
         const previewRect = preview.getBoundingClientRect();
         const logoRect = img.getBoundingClientRect();
@@ -288,7 +288,17 @@ const captureReceiptImage = async () => {
           const dy = (logoRect.top - previewRect.top) * scaleY;
           const dw = logoRect.width * scaleX;
           const dh = logoRect.height * scaleY;
-          ctx.drawImage(img, dx, dy, dw, dh);
+
+          const drawSource = await new Promise((resolve) => {
+            const exportImage = new Image();
+            exportImage.onload = () => resolve(exportImage);
+            exportImage.onerror = () => resolve(null);
+            exportImage.src = resolvedLogoDataUrl || img.currentSrc || img.src || LOGO_FALLBACK_SRC;
+          });
+
+          if (drawSource) {
+            ctx.drawImage(drawSource, dx, dy, dw, dh);
+          }
         }
       } catch (error) {
         console.warn('No se pudo dibujar el logo manualmente en la exportación:', error);
