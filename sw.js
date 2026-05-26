@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comprobantes-v7';
+const CACHE_NAME = 'comprobantes-v8';
 const ASSETS = ['.', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'bbva-logo.png', 'bbva-logo.svg'];
 
 self.addEventListener('install', (event) => {

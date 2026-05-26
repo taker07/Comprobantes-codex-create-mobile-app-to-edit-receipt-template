@@ -274,6 +274,26 @@ const captureReceiptImage = async () => {
     ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(sourceCanvas, 0, 0);
+
+    // iOS/Safari fallback: html2canvas can miss <img> in exports even when preview shows it.
+    // Draw logo explicitly using DOM coordinates mapped to canvas coordinates.
+    if (img && img.complete && img.naturalWidth > 0) {
+      try {
+        const previewRect = preview.getBoundingClientRect();
+        const logoRect = img.getBoundingClientRect();
+        if (previewRect.width > 0 && previewRect.height > 0 && logoRect.width > 0 && logoRect.height > 0) {
+          const scaleX = sourceCanvas.width / previewRect.width;
+          const scaleY = sourceCanvas.height / previewRect.height;
+          const dx = (logoRect.left - previewRect.left) * scaleX;
+          const dy = (logoRect.top - previewRect.top) * scaleY;
+          const dw = logoRect.width * scaleX;
+          const dh = logoRect.height * scaleY;
+          ctx.drawImage(img, dx, dy, dw, dh);
+        }
+      } catch (error) {
+        console.warn('No se pudo dibujar el logo manualmente en la exportación:', error);
+      }
+    }
   }
   if (isBlankCanvas(outputCanvas)) {
     throw new Error('No se pudo renderizar el comprobante en imagen.');
