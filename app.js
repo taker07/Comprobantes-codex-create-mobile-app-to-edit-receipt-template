@@ -50,6 +50,7 @@ const sampleReceipt = {
 let customTemplates = [];
 const LOGO_PRIMARY_SRC = 'bbva-logo.png';
 const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
+let resolvedLogoDataUrl = null;
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
 const getTemplates = () => [...defaultTemplates, ...customTemplates];
@@ -127,32 +128,54 @@ const updatePreview = () => {
   saveStatus.textContent = 'Guardado local';
 };
 
+const blobToDataUrl = (blob) =>
+  new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+
+const resolveLogoDataUrl = async () => {
+  if (resolvedLogoDataUrl) return resolvedLogoDataUrl;
+  const candidates = [LOGO_PRIMARY_SRC, LOGO_FALLBACK_SRC];
+
+  for (const asset of candidates) {
+    try {
+      const response = await fetch(asset, { cache: 'reload' });
+      if (!response.ok) continue;
+      const blob = await response.blob();
+      if (!blob || !blob.size) continue;
+      const dataUrl = await blobToDataUrl(blob);
+      if (!dataUrl) continue;
+      resolvedLogoDataUrl = dataUrl;
+      return dataUrl;
+    } catch (error) {
+      console.warn(`No se pudo cargar ${asset}:`, error);
+    }
+  }
+  return null;
+};
+
 const ensureLogoAvailable = async () => {
   const logo = preview.querySelector('img.bbva-logo');
   if (!logo) return;
-
-  logo.onerror = () => {
-    logo.src = LOGO_FALLBACK_SRC;
-  };
-
-  if (!logo.getAttribute('src')) logo.src = LOGO_PRIMARY_SRC;
-  if (logo.complete && logo.naturalWidth > 0) return;
+  const dataUrl = await resolveLogoDataUrl();
+  if (dataUrl) logo.src = dataUrl;
+  else if (!logo.getAttribute('src')) logo.src = LOGO_FALLBACK_SRC;
 
   await new Promise((resolve) => {
     const done = () => resolve();
-    const timer = setTimeout(done, 1200);
+    const timer = setTimeout(done, 1500);
     logo.onload = () => {
       clearTimeout(timer);
       done();
     };
     logo.onerror = () => {
       clearTimeout(timer);
-      logo.src = LOGO_FALLBACK_SRC;
       done();
     };
   });
-
-  if (!logo.naturalWidth) logo.src = LOGO_FALLBACK_SRC;
 };
 
 const handleTemplateChange = () => {
@@ -196,27 +219,7 @@ const captureReceiptImage = async () => {
     });
   }
 
-  const inlineLogoDataUrl = async (imageEl) => {
-    if (!imageEl) return null;
-    try {
-      const sourceUrl = imageEl.currentSrc || imageEl.src;
-      if (!sourceUrl) return null;
-      const response = await fetch(sourceUrl, { cache: 'no-store' });
-      if (!response.ok) return null;
-      const blob = await response.blob();
-      return await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    } catch (error) {
-      console.warn('No se pudo convertir el logo a data URL:', error);
-      return null;
-    }
-  };
-
-  const logoDataUrl = await inlineLogoDataUrl(img);
+  const logoDataUrl = resolvedLogoDataUrl || (img ? img.src : null);
   
   const renderCanvas = async (onclone) =>
     html2canvas(preview, {
