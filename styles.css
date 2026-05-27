@@ -31,16 +31,18 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
   color: #1f3d6d;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  border-top: 9px solid #ffffff;
+  border-left: 9px solid #ffffff;
 }
 .receipt-card {
   background: #f7f9f8;
   border-radius: 26px;
-  padding: 1.2rem 1.1rem 1rem;
+  padding: 1.2rem 0.6rem 1rem;
   border: 0;
   box-shadow: none;
 }
 .bbva-logo {
-  width: 126px;
+  width: 146px;
   max-width: 100%;
   height: auto;
   margin: 0 0 2rem;
@@ -48,40 +50,43 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
 }
 .bbva-title {
   margin: 0 0 1.55rem;
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 500;
   letter-spacing: 0.01em;
   color: #1a4a86;
+  text-align: center;
 }
 .bbva-card {
   background: #ffffff;
   border: 1px solid #f0f1f3;
   border-radius: 22px;
-  padding: 1.55rem 1.45rem;
+  padding: 1.75rem 1.45rem;
   margin-bottom: 1.35rem;
 }
 .bbva-card p {
   margin: 0 0 0.35rem;
-  color: #254879;
-  font-size: clamp(12px, 1.55vw, 15px);
+  color: #1f3f70;
+  font-size: clamp(23px, 1.7vw, 25px);
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: 350;
 }
 .bbva-card strong {
   display: block;
   margin: 0 0 1.95rem;
-  font-size: clamp(14px, 2.15vw, 28px);
+  font-size: clamp(16px, 2.3vw, 22px);
   line-height: 1.1;
-  font-weight: 500;
-  color: #163969;
+  font-weight: 600;
+  color: #0e2f63;
 }
 .bbva-card strong:last-child { margin-bottom: 0; }
 .bbva-footer {
-  color: #556b8c;
+  color: #484a50c5;
   line-height: 1.55;
-  font-size: clamp(10px, 1.35vw, 20px);
-  margin: 1.1rem 0 0;
-  padding: 0 0.5rem;
+  font-size: clamp(8px, 1.35vw, 20px);
+  margin: 0.05rem auto 0;
+  padding: 0;
+  text-align: justify;
+  max-width: 92%;
 }
 .mobile-action-bar { display: none; }
 

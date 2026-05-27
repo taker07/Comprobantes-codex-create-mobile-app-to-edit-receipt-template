@@ -51,6 +51,15 @@ let customTemplates = [];
 const LOGO_PRIMARY_SRC = 'bbva-logo.png';
 const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
 let resolvedLogoDataUrl = null;
+const EXPORT_SETTINGS = {
+  format: 'image/jpeg',
+  quality: 0.95,
+  scale: 2,
+  // Set width/height in px (e.g. 512/1536) to force exact output size.
+  // Keep null to use the preview's natural rendered size.
+  width: 485,
+  height: 1600,
+};
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
 const getTemplates = () => [...defaultTemplates, ...customTemplates];
@@ -220,11 +229,11 @@ const captureReceiptImage = async () => {
   }
 
   const logoDataUrl = resolvedLogoDataUrl || (img ? img.src : null);
-  
-  const renderCanvas = async (onclone) =>
-    html2canvas(preview, {
-    backgroundColor: '#eef0f2',
-    scale: 2,
+  const previewBg = getComputedStyle(preview).backgroundColor || '#f7f9f8';
+
+  const sourceCanvas = await html2canvas(preview, {
+    backgroundColor: previewBg,
+    scale: EXPORT_SETTINGS.scale,
     useCORS: false,
     allowTaint: false,
     imageTimeout: 15000,
@@ -237,78 +246,49 @@ const captureReceiptImage = async () => {
     onclone: (doc) => {
       const clonedLogo = doc.querySelector('#receiptPreview img.bbva-logo');
       if (clonedLogo && logoDataUrl) clonedLogo.src = logoDataUrl;
-      if (typeof onclone === 'function') onclone(doc);
     },
   });
-  
-  let sourceCanvas = await renderCanvas();
-  const isBlankCanvas = (canvas) => {
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return true;
-    const sampleW = Math.min(canvas.width, 80);
-    const sampleH = Math.min(canvas.height, 80);
-    const data = ctx.getImageData(0, 0, sampleW, sampleH).data;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] !== 0) return false;
-    }
-    return true;
-  };
 
-  if (isBlankCanvas(sourceCanvas)) {
-    sourceCanvas = await renderCanvas((doc) => {
-      const clonedPreview = doc.querySelector('#receiptPreview');
-      if (clonedPreview) {
-        clonedPreview.style.position = 'fixed';
-        clonedPreview.style.left = '0';
-        clonedPreview.style.top = '0';
-        clonedPreview.style.zIndex = '2147483647';
-      }
-    });
-  }
+  const targetWidth = EXPORT_SETTINGS.width || sourceCanvas.width;
+  const targetHeight = EXPORT_SETTINGS.height || sourceCanvas.height;
   const outputCanvas = document.createElement('canvas');
-  outputCanvas.width = sourceCanvas.width;
-  outputCanvas.height = sourceCanvas.height;
+  outputCanvas.width = targetWidth;
+  outputCanvas.height = targetHeight;
   const ctx = outputCanvas.getContext('2d');
-  if (ctx) {
-    ctx.fillStyle = '#eef0f2';
-    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(sourceCanvas, 0, 0);
+  if (!ctx) return sourceCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
 
-    // iOS/Safari fallback: html2canvas can miss <img> in exports even when preview shows it.
-    // Draw logo explicitly using DOM coordinates mapped to canvas coordinates.
-    if (img && img.getBoundingClientRect().width > 0 && img.getBoundingClientRect().height > 0) {
-      try {
-        const previewRect = preview.getBoundingClientRect();
-        const logoRect = img.getBoundingClientRect();
-        if (previewRect.width > 0 && previewRect.height > 0 && logoRect.width > 0 && logoRect.height > 0) {
-          const scaleX = sourceCanvas.width / previewRect.width;
-          const scaleY = sourceCanvas.height / previewRect.height;
-          const dx = (logoRect.left - previewRect.left) * scaleX;
-          const dy = (logoRect.top - previewRect.top) * scaleY;
-          const dw = logoRect.width * scaleX;
-          const dh = logoRect.height * scaleY;
+  ctx.fillStyle = previewBg;
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+  ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
 
-          const drawSource = await new Promise((resolve) => {
-            const exportImage = new Image();
-            exportImage.onload = () => resolve(exportImage);
-            exportImage.onerror = () => resolve(null);
-            exportImage.src = resolvedLogoDataUrl || img.currentSrc || img.src || LOGO_FALLBACK_SRC;
-          });
+  // iPhone/Safari-safe fallback: draw logo explicitly on top if available.
+  if (img && logoDataUrl) {
+    try {
+      const previewRect = preview.getBoundingClientRect();
+      const logoRect = img.getBoundingClientRect();
+      if (previewRect.width > 0 && previewRect.height > 0 && logoRect.width > 0 && logoRect.height > 0) {
+        const scaleX = targetWidth / previewRect.width;
+        const scaleY = targetHeight / previewRect.height;
+        const dx = (logoRect.left - previewRect.left) * scaleX;
+        const dy = (logoRect.top - previewRect.top) * scaleY;
+        const dw = logoRect.width * scaleX;
+        const dh = logoRect.height * scaleY;
 
-          if (drawSource) {
-            ctx.drawImage(drawSource, dx, dy, dw, dh);
-          }
-        }
-      } catch (error) {
-        console.warn('No se pudo dibujar el logo manualmente en la exportación:', error);
+        const exportImage = await new Promise((resolve) => {
+          const logo = new Image();
+          logo.onload = () => resolve(logo);
+          logo.onerror = () => resolve(null);
+          logo.src = logoDataUrl;
+        });
+
+        if (exportImage) ctx.drawImage(exportImage, dx, dy, dw, dh);
       }
+    } catch (error) {
+      console.warn('Logo fallback draw failed:', error);
     }
   }
-  if (isBlankCanvas(outputCanvas)) {
-    throw new Error('No se pudo renderizar el comprobante en imagen.');
-  }
-  return outputCanvas.toDataURL('image/jpeg', 0.95);
+
+  return outputCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
 };
 const downloadReceipt = async () => {
   try {
@@ -408,6 +388,16 @@ downloadButton.addEventListener('click', downloadReceipt);
 mobileDownloadButton.addEventListener('click', downloadReceipt);
 printButton.addEventListener('click', printReceiptImage);
 mobilePrintButton.addEventListener('click', printReceiptImage);
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((registration) => registration.unregister()));
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+  });
+}
 initialize();
+
 
