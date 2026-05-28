@@ -12,10 +12,13 @@ const mobileDownloadButton = document.querySelector('#mobileDownloadButton');
 const mobilePrintButton = document.querySelector('#mobilePrintButton');
 const exportTemplatesButton = document.querySelector('#exportTemplates');
 const importTemplatesInput = document.querySelector('#importTemplatesInput');
+const appVersion = document.querySelector('#appVersion');
 
 const DRAFT_STORAGE_KEY = 'comprobantes.bbvaDraft.v1';
 const TEMPLATE_STORAGE_KEY = 'comprobantes.bbvaTemplates.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
+const APP_VERSION = 'v1.0.0';
+const APP_COMMIT_LABEL = 'codex/edit-app-to-create-templates';
 
 const defaultTemplates = [
   {
@@ -389,6 +392,9 @@ const initialize = () => {
   setFormData({ ...initialData, templateId: template.id });
   updatePreview();
   ensureLogoAvailable();
+  if (appVersion) {
+    appVersion.textContent = `${APP_VERSION} - ${APP_COMMIT_LABEL}`;
+  }
 };
 
 form.addEventListener('input', () => { saveStatus.textContent = 'Actualizando…'; updatePreview(); });
