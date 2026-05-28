@@ -234,6 +234,8 @@ const captureReceiptImage = async () => {
   const sourceCanvas = await html2canvas(preview, {
     backgroundColor: previewBg,
     scale: EXPORT_SETTINGS.scale,
+    width: EXPORT_SETTINGS.width || undefined,
+    height: EXPORT_SETTINGS.height || undefined,
     useCORS: false,
     allowTaint: false,
     imageTimeout: 15000,
@@ -244,6 +246,14 @@ const captureReceiptImage = async () => {
     windowWidth: document.documentElement.scrollWidth,
     windowHeight: document.documentElement.scrollHeight,
     onclone: (doc) => {
+      const clonedPreview = doc.querySelector('#receiptPreview');
+      if (clonedPreview && EXPORT_SETTINGS.width && EXPORT_SETTINGS.height) {
+        clonedPreview.style.width = `${EXPORT_SETTINGS.width}px`;
+        clonedPreview.style.maxWidth = `${EXPORT_SETTINGS.width}px`;
+        clonedPreview.style.height = `${EXPORT_SETTINGS.height}px`;
+        clonedPreview.style.minHeight = `${EXPORT_SETTINGS.height}px`;
+        clonedPreview.style.boxSizing = 'border-box';
+      }
       const clonedLogo = doc.querySelector('#receiptPreview img.bbva-logo');
       if (clonedLogo && logoDataUrl) clonedLogo.src = logoDataUrl;
     },
@@ -259,7 +269,11 @@ const captureReceiptImage = async () => {
 
   ctx.fillStyle = previewBg;
   ctx.fillRect(0, 0, targetWidth, targetHeight);
-  ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+  const drawWidth = targetWidth;
+  const drawHeight = targetHeight;
+  const drawX = 0;
+  const drawY = 0;
+  ctx.drawImage(sourceCanvas, drawX, drawY, drawWidth, drawHeight);
 
   // iPhone/Safari-safe fallback: draw logo explicitly on top if available.
   if (img && logoDataUrl) {
@@ -267,10 +281,10 @@ const captureReceiptImage = async () => {
       const previewRect = preview.getBoundingClientRect();
       const logoRect = img.getBoundingClientRect();
       if (previewRect.width > 0 && previewRect.height > 0 && logoRect.width > 0 && logoRect.height > 0) {
-        const scaleX = targetWidth / previewRect.width;
-        const scaleY = targetHeight / previewRect.height;
-        const dx = (logoRect.left - previewRect.left) * scaleX;
-        const dy = (logoRect.top - previewRect.top) * scaleY;
+        const scaleX = drawWidth / previewRect.width;
+        const scaleY = drawHeight / previewRect.height;
+        const dx = drawX + (logoRect.left - previewRect.left) * scaleX;
+        const dy = drawY + (logoRect.top - previewRect.top) * scaleY;
         const dw = logoRect.width * scaleX;
         const dh = logoRect.height * scaleY;
 
