@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "templates": [
+    {
+      "id": "bbva",
+      "name": "BBVA estándar",
+      "path": "defaults/bbva.standard.json",
+      "type": "default"
+    },
+    {
+      "id": "banorte",
+      "name": "Banorte (base)",
+      "path": "defaults/banorte.base.json",
+      "type": "default"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "bbva",
+  "name": "BBVA estándar",
+  "bankBrand": "BBVA",
+  "operationHeading": "COMPROBANTE DE LA OPERACION",
+  "footerText": "BBVA México, S.A., Institución de Banca Múltiple, Grupo Financiero BBVA México. Avenida Paseo de la Reforma 510, colonia Juárez, código postal 06600, alcaldía Cuauhtémoc, Ciudad de México.",
+  "style": {
+    "receiptBackground": "#f7f9f8",
+    "titleColor": "#1a4a86",
+    "labelColor": "#1f3f70",
+    "valueColor": "#0e2f63",
+    "footerColor": "#484a50c5"
+  }
+}

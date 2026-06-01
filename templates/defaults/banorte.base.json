@@ -1,0 +1,108 @@
+{
+  "id": "banorte",
+  "name": "Banorte (base)",
+  "type": "background",
+  "backgroundImage": "assets/banorte-cb.png",
+  "export": {
+    "width": 1010,
+    "height": 1600
+  },
+  "overlayFields": [
+    {
+      "id": "amountDisplay",
+      "field": "amountDisplay",
+      "x": 255,
+      "y": 700,
+      "width": 500,
+      "height": 86,
+      "fontSize": 72,
+      "fontWeight": 500,
+      "color": "#2D3948",
+      "align": "left"
+    },
+    {
+      "id": "destinatarioNombre",
+      "field": "destinatarioNombre",
+      "x": 550,
+      "y": 1088,
+      "width": 420,
+      "height": 54,
+      "fontSize": 54,
+      "fontWeight": 600,
+      "color": "#2E3A49",
+      "align": "left"
+    },
+    {
+      "id": "destinatarioBanco",
+      "field": "destinatarioBanco",
+      "x": 665,
+      "y": 1148,
+      "width": 190,
+      "height": 60,
+      "fontSize": 52,
+      "fontWeight": 600,
+      "color": "#2E3A49",
+      "align": "left"
+    },
+    {
+      "id": "sourceAccountSuffix",
+      "field": "sourceAccountSuffix",
+      "x": 315,
+      "y": 1222,
+      "width": 90,
+      "height": 58,
+      "fontSize": 52,
+      "fontWeight": 400,
+      "color": "#3A4350",
+      "align": "left"
+    },
+    {
+      "id": "destinationCardSuffix",
+      "field": "destinationCardSuffix",
+      "x": 775,
+      "y": 1222,
+      "width": 90,
+      "height": 58,
+      "fontSize": 52,
+      "fontWeight": 400,
+      "color": "#3A4350",
+      "align": "left"
+    },
+    {
+      "id": "conceptoTransferencia",
+      "field": "conceptoTransferencia",
+      "x": 642,
+      "y": 1390,
+      "width": 325,
+      "height": 64,
+      "fontSize": 54,
+      "fontWeight": 600,
+      "color": "#2F3B4A",
+      "align": "right"
+    },
+    {
+      "id": "aliasDestinatario",
+      "field": "aliasDestinatario",
+      "x": 860,
+      "y": 1490,
+      "width": 110,
+      "height": 64,
+      "fontSize": 54,
+      "fontWeight": 600,
+      "color": "#2F3B4A",
+      "align": "right"
+    },
+    {
+      "id": "operationDateTime",
+      "field": "operationDateTime",
+      "x": 66,
+      "y": 1568,
+      "width": 410,
+      "height": 58,
+      "fontSize": 50,
+      "fontWeight": 400,
+      "color": "#6C757F",
+      "align": "left"
+    }
+  ]
+}

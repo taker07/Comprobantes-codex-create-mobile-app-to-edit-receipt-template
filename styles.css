@@ -23,6 +23,7 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
 
 .bbva-receipt {
+  position: relative;
   background: #f7f9f8;
   border-radius: 0;
   padding: 2.2rem 1.5rem 1.8rem;
@@ -33,6 +34,37 @@ button, .bar-link, .import-label { border: 0; border-radius: 999px; padding: .7r
   text-rendering: optimizeLegibility;
   border-top: 9px solid #ffffff;
   border-left: 9px solid #ffffff;
+}
+.bbva-receipt.template-background {
+  width: 100%;
+  max-width: 505px;
+  aspect-ratio: 1010 / 1600;
+  padding: 0;
+  border: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.bbva-receipt.template-background .bbva-logo,
+.bbva-receipt.template-background .bbva-title,
+.bbva-receipt.template-background .receipt-card,
+.bbva-receipt.template-background .bbva-footer {
+  display: none;
+}
+.template-overlay {
+  display: none;
+}
+.bbva-receipt.template-background .template-overlay {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+.overlay-field {
+  position: absolute;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
 }
 .receipt-card {
   background: #f7f9f8;
