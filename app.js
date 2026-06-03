@@ -71,6 +71,7 @@ const EXPORT_SETTINGS = {
   width: 485,
   height: 1600,
 };
+const DEFAULT_OVERLAY_FONT = '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
 const getTemplates = () => [...systemTemplates, ...customTemplates];
@@ -196,7 +197,6 @@ const updatePreview = () => {
     const height = activeTemplate?.export?.height || 1600;
     const previewWidth = preview.clientWidth || 1;
     const previewScale = previewWidth / width;
-    const overlayFontScale = 0.5;
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
     fields.forEach((layer) => {
       const node = document.createElement('div');
@@ -207,8 +207,10 @@ const updatePreview = () => {
       node.style.top = `${layer.y * previewScale}px`;
       node.style.width = `${layer.width * previewScale}px`;
       node.style.height = `${(layer.height || layer.fontSize * 1.2) * previewScale}px`;
-      node.style.fontSize = `${layer.fontSize * previewScale * overlayFontScale}px`;
+      node.style.fontSize = `${layer.fontSize * previewScale}px`;
       node.style.fontWeight = String(layer.fontWeight || 400);
+      node.style.fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
+      node.style.lineHeight = String(layer.lineHeight || 1.1);
       node.style.color = layer.color || '#2f3b4b';
       node.style.textAlign = layer.align || 'left';
       if (templateOverlay) templateOverlay.append(node);
@@ -340,6 +342,7 @@ const captureReceiptImage = async () => {
       if (!text) return;
       const fontWeight = layer.fontWeight || 400;
       const fontSize = layer.fontSize || 24;
+      const fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       const color = layer.color || '#2f3b4b';
       const align = layer.align || 'left';
       const x = layer.x || 0;
@@ -348,7 +351,7 @@ const captureReceiptImage = async () => {
       const height = layer.height || Math.ceil(fontSize * 1.2);
 
       directCtx.fillStyle = color;
-      directCtx.font = `${fontWeight} ${fontSize}px "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      directCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       directCtx.textAlign = align === 'right' ? 'right' : align === 'center' ? 'center' : 'left';
       directCtx.textBaseline = 'top';
       const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
@@ -467,6 +470,7 @@ const normalizeSystemTemplate = (template) => ({
   operationHeading: template.operationHeading || 'COMPROBANTE DE LA OPERACION',
   footerText: template.footerText || fallbackTemplates[0].footerText,
   backgroundImage: template.backgroundImage || null,
+  overlayFontFamily: template.overlayFontFamily || DEFAULT_OVERLAY_FONT,
   export: {
     width: template?.export?.width || null,
     height: template?.export?.height || null,
