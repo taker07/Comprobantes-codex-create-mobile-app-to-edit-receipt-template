@@ -45,8 +45,8 @@
       "width": 485,
       "height": 40,
       "fontSize": 33,
-      "fontWeight": 600,
-      "fontFamily": "\"Arial\", \"Helvetica Neue\", sans-serif",
+      "fontWeight": 500,
+      "fontFamily": "\"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
       "color": "#3F474D",
       "align": "center"
     },
@@ -58,8 +58,8 @@
       "width": 485,
       "height": 40,
       "fontSize": 34,
-      "fontWeight": 600,
-      "fontFamily": "\"Arial\", \"Helvetica Neue\", sans-serif",
+      "fontWeight": 500,
+      "fontFamily": "\"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
       "color": "#3F474D",
       "align": "center"
     },
