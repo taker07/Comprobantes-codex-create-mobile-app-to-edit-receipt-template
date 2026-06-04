@@ -131,6 +131,52 @@ const BANORTE_OVERLAY_FIELDS = [
 
 const getSelectedTemplate = () => getTemplateById(getFormData().templateId);
 
+const splitAmountDisplay = (value) => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  const match = text.match(/^([^0-9-]*?)\s*([-+]?\d[\d,]*(?:\.\d+)?)\s*([^0-9]*)$/);
+  if (!match) return { currency: '', amount: text, suffix: '' };
+  return {
+    currency: match[1].trim(),
+    amount: match[2],
+    suffix: match[3].trim(),
+  };
+};
+
+const getOverlayText = (layer, values) => {
+  const value = values[layer.field];
+  if (typeof value !== 'string') return '';
+  if (!layer.amountPart) return value;
+  return splitAmountDisplay(value)[layer.amountPart] || '';
+};
+
+const measureSpacedText = (ctx, text, letterSpacing) =>
+  [...text].reduce((width, character, index) => {
+    const spacing = index > 0 ? letterSpacing : 0;
+    return width + spacing + ctx.measureText(character).width;
+  }, 0);
+
+const fillSpacedText = (ctx, text, x, y, width, align, letterSpacing) => {
+  if (!letterSpacing) {
+    const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
+    ctx.fillText(text, drawX, y, width);
+    return;
+  }
+
+  const textWidth = measureSpacedText(ctx, text, letterSpacing);
+  let drawX = x;
+  if (align === 'right') drawX = x + width - textWidth;
+  else if (align === 'center') drawX = x + (width - textWidth) / 2;
+
+  const previousAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  [...text].forEach((character, index) => {
+    if (index > 0) drawX += letterSpacing;
+    ctx.fillText(character, drawX, y);
+    drawX += ctx.measureText(character).width;
+  });
+  ctx.textAlign = previousAlign;
+};
+
 const resolveAssetDataUrl = async (assetPath) => {
   if (!assetPath) return null;
   if (templateAssetDataUrlCache.has(assetPath)) return templateAssetDataUrlCache.get(assetPath);
@@ -199,18 +245,25 @@ const updatePreview = () => {
     const previewScale = previewWidth / width;
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
     fields.forEach((layer) => {
+      const text = getOverlayText(layer, data);
+      if (!text) return;
       const node = document.createElement('div');
       node.className = 'overlay-field';
-      const value = data[layer.field];
-      node.textContent = typeof value === 'string' ? value : '';
+      node.textContent = text;
+      const scaleX = layer.scaleX || 1;
       node.style.left = `${layer.x * previewScale}px`;
       node.style.top = `${layer.y * previewScale}px`;
-      node.style.width = `${layer.width * previewScale}px`;
+      node.style.width = `${(layer.width / scaleX) * previewScale}px`;
       node.style.height = `${(layer.height || layer.fontSize * 1.2) * previewScale}px`;
       node.style.fontSize = `${layer.fontSize * previewScale}px`;
       node.style.fontWeight = String(layer.fontWeight || 400);
       node.style.fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       node.style.lineHeight = String(layer.lineHeight || 1.1);
+      node.style.letterSpacing = `${((layer.letterSpacing || 0) / scaleX) * previewScale}px`;
+      if (scaleX !== 1) {
+        node.style.transform = `scaleX(${scaleX})`;
+        node.style.transformOrigin = 'left top';
+      }
       node.style.color = layer.color || '#2f3b4b';
       node.style.textAlign = layer.align || 'left';
       if (templateOverlay) templateOverlay.append(node);
@@ -338,13 +391,15 @@ const captureReceiptImage = async () => {
     const values = getFormData();
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
     fields.forEach((layer) => {
-      const text = typeof values[layer.field] === 'string' ? values[layer.field] : '';
+      const text = getOverlayText(layer, values);
       if (!text) return;
       const fontWeight = layer.fontWeight || 400;
       const fontSize = layer.fontSize || 24;
       const fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       const color = layer.color || '#2f3b4b';
       const align = layer.align || 'left';
+      const letterSpacing = layer.letterSpacing || 0;
+      const scaleX = layer.scaleX || 1;
       const x = layer.x || 0;
       const y = layer.y || 0;
       const width = layer.width || templateExportWidth;
@@ -354,12 +409,17 @@ const captureReceiptImage = async () => {
       directCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
       directCtx.textAlign = align === 'right' ? 'right' : align === 'center' ? 'center' : 'left';
       directCtx.textBaseline = 'top';
-      const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
       directCtx.save();
       directCtx.beginPath();
       directCtx.rect(x, y, width, height);
       directCtx.clip();
-      directCtx.fillText(text, drawX, y, width);
+      if (scaleX === 1) {
+        fillSpacedText(directCtx, text, x, y, width, align, letterSpacing);
+      } else {
+        directCtx.translate(x, y);
+        directCtx.scale(scaleX, 1);
+        fillSpacedText(directCtx, text, 0, 0, width / scaleX, align, letterSpacing / scaleX);
+      }
       directCtx.restore();
     });
 
