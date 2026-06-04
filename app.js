@@ -13,10 +13,12 @@ const mobilePrintButton = document.querySelector('#mobilePrintButton');
 const exportTemplatesButton = document.querySelector('#exportTemplates');
 const importTemplatesInput = document.querySelector('#importTemplatesInput');
 const templateOverlay = document.querySelector('#templateOverlay');
+const appVersion = document.querySelector('#appVersion');
 
 const DRAFT_STORAGE_KEY = 'comprobantes.bbvaDraft.v1';
 const TEMPLATE_STORAGE_KEY = 'comprobantes.bbvaTemplates.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
+const APP_VERSION = 'v1.0.1-md:v.c,int.app';
 
 const fallbackTemplates = [
   {
@@ -63,8 +65,8 @@ const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
 let resolvedLogoDataUrl = null;
 const templateAssetDataUrlCache = new Map();
 const EXPORT_SETTINGS = {
-  format: 'image/png',
-  quality: 0.95,
+  format: 'image/jpeg',
+  quality: 0.92,
   scale: 3,
   // Set width/height in px (e.g. 512/1536) to force exact output size.
   // Keep null to use the preview's natural rendered size.
@@ -492,7 +494,7 @@ const downloadReceipt = async () => {
     const dataUrl = await captureReceiptImage();
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = 'comprobante.png';
+    link.download = 'comprobante.jpg';
     link.click();
   } catch (error) {
     console.error(error);
@@ -603,6 +605,7 @@ const importCustomTemplates = async (event) => {
 };
 
 const initialize = async () => {
+  if (appVersion) appVersion.textContent = APP_VERSION;
   await loadSystemTemplatesFromFiles();
   customTemplates = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || '[]').map(normalizeTemplate);
   renderTemplateOptions();
