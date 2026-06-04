@@ -18,7 +18,7 @@ const appVersion = document.querySelector('#appVersion');
 const DRAFT_STORAGE_KEY = 'comprobantes.bbvaDraft.v1';
 const TEMPLATE_STORAGE_KEY = 'comprobantes.bbvaTemplates.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.0.1-md:v.c,int.app';
+const APP_VERSION = 'v1.0.1-md:d,c';
 
 const fallbackTemplates = [
   {
@@ -151,32 +151,234 @@ const getOverlayText = (layer, values) => {
   return splitAmountDisplay(value)[layer.amountPart] || '';
 };
 
-const measureSpacedText = (ctx, text, letterSpacing) =>
-  [...text].reduce((width, character, index) => {
-    const spacing = index > 0 ? letterSpacing : 0;
-    return width + spacing + ctx.measureText(character).width;
+const drawTextLayer = (ctx, text, x, y, width, align) => {
+  const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
+  ctx.fillText(text, drawX, y, width);
+};
+
+const getAmountLayout = (layer, value) => {
+  const parts = splitAmountDisplay(value);
+  const currency = parts.currency || '$';
+  const suffix = parts.suffix || 'MN';
+  return {
+    currency,
+    amount: parts.amount,
+    suffix,
+    currencySize: layer.currencyFontSize || 51,
+    amountSize: layer.amountFontSize || 78,
+    suffixSize: layer.suffixFontSize || 52,
+    currencyWeight: layer.currencyFontWeight || 400,
+    amountWeight: layer.amountFontWeight || 400,
+    suffixWeight: layer.suffixFontWeight || 400,
+    commaText: layer.commaText || ',',
+    commaFontFamily: layer.commaFontFamily || null,
+    commaSize: layer.commaFontSize || layer.amountFontSize || 78,
+    commaWeight: layer.commaFontWeight || 400,
+    commaOffsetY: layer.commaOffsetY || layer.amountOffsetY || 0,
+    commaGapBefore: layer.commaGapBefore || 0,
+    commaGapAfter: layer.commaGapAfter || 0,
+    currencyOffsetY: layer.currencyOffsetY || 20,
+    amountOffsetY: layer.amountOffsetY || 0,
+    suffixOffsetY: layer.suffixOffsetY || 23,
+    currencyGap: layer.currencyGap || 18,
+    suffixGap: layer.suffixGap || 28,
+  };
+};
+
+const getAmountTokens = (amount) => {
+  const tokens = [];
+  let digitBuffer = '';
+  [...amount].forEach((character) => {
+    if (character === ',') {
+      if (digitBuffer) tokens.push({ type: 'text', value: digitBuffer });
+      tokens.push({ type: 'comma', value: character });
+      digitBuffer = '';
+      return;
+    }
+    digitBuffer += character;
+  });
+  if (digitBuffer) tokens.push({ type: 'text', value: digitBuffer });
+  return tokens;
+};
+
+const measureAmountPart = (ctx, fontFamily, weight, size, text) => {
+  ctx.font = `${weight} ${size}px ${fontFamily}`;
+  return ctx.measureText(text).width;
+};
+
+const measureAmountValue = (ctx, fontFamily, amountLayout, scale) =>
+  getAmountTokens(amountLayout.amount).reduce((width, token) => {
+    if (token.type === 'comma') {
+      const commaFontFamily = amountLayout.commaFontFamily || fontFamily;
+      return (
+        width +
+        amountLayout.commaGapBefore * scale +
+        measureAmountPart(ctx, commaFontFamily, amountLayout.commaWeight, amountLayout.commaSize * scale, amountLayout.commaText) +
+        amountLayout.commaGapAfter * scale
+      );
+    }
+    return width + measureAmountPart(ctx, fontFamily, amountLayout.amountWeight, amountLayout.amountSize * scale, token.value);
   }, 0);
 
-const fillSpacedText = (ctx, text, x, y, width, align, letterSpacing) => {
-  if (!letterSpacing) {
-    const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
-    ctx.fillText(text, drawX, y, width);
-    return;
-  }
+const fitAmountLayout = (ctx, fontFamily, amountLayout, maxWidth) => {
+  const measureAtScale = (scale) => {
+    const currencyWidth = measureAmountPart(
+      ctx,
+      fontFamily,
+      amountLayout.currencyWeight,
+      amountLayout.currencySize * scale,
+      amountLayout.currency,
+    );
+    const amountWidth = measureAmountValue(ctx, fontFamily, amountLayout, scale);
+    const suffixWidth = measureAmountPart(
+      ctx,
+      fontFamily,
+      amountLayout.suffixWeight,
+      amountLayout.suffixSize * scale,
+      amountLayout.suffix,
+    );
+    return {
+      currencyWidth,
+      amountWidth,
+      suffixWidth,
+      totalWidth:
+        currencyWidth +
+        amountLayout.currencyGap * scale +
+        amountWidth +
+        amountLayout.suffixGap * scale +
+        suffixWidth,
+    };
+  };
 
-  const textWidth = measureSpacedText(ctx, text, letterSpacing);
-  let drawX = x;
-  if (align === 'right') drawX = x + width - textWidth;
-  else if (align === 'center') drawX = x + (width - textWidth) / 2;
+  const fullSize = measureAtScale(1);
+  const scale = fullSize.totalWidth > maxWidth ? Math.max(maxWidth / fullSize.totalWidth, 0.72) : 1;
+  return { ...measureAtScale(scale), scale };
+};
 
-  const previousAlign = ctx.textAlign;
-  ctx.textAlign = 'left';
-  [...text].forEach((character, index) => {
-    if (index > 0) drawX += letterSpacing;
-    ctx.fillText(character, drawX, y);
-    drawX += ctx.measureText(character).width;
+const getAmountTokenPositions = (ctx, fontFamily, amountLayout, scale, amountLeft) => {
+  let currentX = amountLeft;
+  return getAmountTokens(amountLayout.amount).map((token) => {
+    if (token.type === 'comma') {
+      const commaFontFamily = amountLayout.commaFontFamily || fontFamily;
+      currentX += amountLayout.commaGapBefore * scale;
+      const width = measureAmountPart(ctx, commaFontFamily, amountLayout.commaWeight, amountLayout.commaSize * scale, amountLayout.commaText);
+      const positionedToken = { ...token, value: amountLayout.commaText, fontFamily: commaFontFamily, x: currentX, width };
+      currentX += width + amountLayout.commaGapAfter * scale;
+      return positionedToken;
+    }
+    const width = measureAmountPart(ctx, fontFamily, amountLayout.amountWeight, amountLayout.amountSize * scale, token.value);
+    const positionedToken = { ...token, x: currentX, width };
+    currentX += width;
+    return positionedToken;
   });
-  ctx.textAlign = previousAlign;
+};
+
+const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => {
+  const node = document.createElement('div');
+  const amountLayout = getAmountLayout(layer, value);
+  const fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
+  const maxWidth = layer.width || 540;
+  const measureCanvas = document.createElement('canvas');
+  const measureCtx = measureCanvas.getContext('2d');
+  const fitted = measureCtx
+    ? fitAmountLayout(measureCtx, fontFamily, amountLayout, maxWidth)
+    : { scale: 1, currencyWidth: 0, amountWidth: 0, suffixWidth: 0, totalWidth: maxWidth };
+  const startX = layer.align === 'center' ? (maxWidth - fitted.totalWidth) / 2 : 0;
+
+  node.className = 'overlay-field amount-overlay';
+  node.style.left = `${layer.x * previewScale}px`;
+  node.style.top = `${layer.y * previewScale}px`;
+  node.style.width = `${maxWidth * previewScale}px`;
+  node.style.height = `${(layer.height || 90) * previewScale}px`;
+  node.style.color = layer.color || '#3D474E';
+  node.style.fontFamily = fontFamily;
+
+  const createPart = (text, left, top, size, weight, partFontFamily = fontFamily) => {
+    const part = document.createElement('span');
+    part.textContent = text;
+    part.style.position = 'absolute';
+    part.style.left = `${left * previewScale}px`;
+    part.style.top = `${top * previewScale}px`;
+    part.style.fontSize = `${size * fitted.scale * previewScale}px`;
+    part.style.fontWeight = String(weight);
+    part.style.fontFamily = partFontFamily;
+    part.style.lineHeight = '1';
+    node.append(part);
+  };
+
+  const currencyLeft = startX;
+  const amountLeft = currencyLeft + fitted.currencyWidth + amountLayout.currencyGap * fitted.scale;
+  const suffixLeft = amountLeft + fitted.amountWidth + amountLayout.suffixGap * fitted.scale;
+  const amountTokens = measureCtx ? getAmountTokenPositions(measureCtx, fontFamily, amountLayout, fitted.scale, amountLeft) : [];
+  createPart(
+    amountLayout.currency,
+    currencyLeft,
+    amountLayout.currencyOffsetY * fitted.scale,
+    amountLayout.currencySize,
+    amountLayout.currencyWeight,
+  );
+  amountTokens.forEach((token) => {
+    createPart(
+      token.value,
+      token.x,
+      (token.type === 'comma' ? amountLayout.commaOffsetY : amountLayout.amountOffsetY) * fitted.scale,
+      token.type === 'comma' ? amountLayout.commaSize : amountLayout.amountSize,
+      token.type === 'comma' ? amountLayout.commaWeight : amountLayout.amountWeight,
+      token.fontFamily || fontFamily,
+    );
+  });
+  createPart(
+    amountLayout.suffix,
+    suffixLeft,
+    amountLayout.suffixOffsetY * fitted.scale,
+    amountLayout.suffixSize,
+    amountLayout.suffixWeight,
+  );
+  return node;
+};
+
+const drawAmountOverlay = (ctx, layer, value, fontFamily, color) => {
+  const amountLayout = getAmountLayout(layer, value);
+  const maxWidth = layer.width || 540;
+  const fitted = fitAmountLayout(ctx, fontFamily, amountLayout, maxWidth);
+  const startX = layer.x + (layer.align === 'center' ? (maxWidth - fitted.totalWidth) / 2 : 0);
+  const currencyX = startX;
+  const amountX = currencyX + fitted.currencyWidth + amountLayout.currencyGap * fitted.scale;
+  const suffixX = amountX + fitted.amountWidth + amountLayout.suffixGap * fitted.scale;
+  const amountTokens = getAmountTokenPositions(ctx, fontFamily, amountLayout, fitted.scale, amountX);
+
+  const drawPart = (text, x, offsetY, size, weight, partFontFamily = fontFamily) => {
+    ctx.font = `${weight} ${size * fitted.scale}px ${partFontFamily}`;
+    ctx.fillText(text, x, layer.y + offsetY * fitted.scale);
+  };
+
+  ctx.fillStyle = color || '#3D474E';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  drawPart(
+    amountLayout.currency,
+    currencyX,
+    amountLayout.currencyOffsetY,
+    amountLayout.currencySize,
+    amountLayout.currencyWeight,
+  );
+  amountTokens.forEach((token) => {
+    drawPart(
+      token.value,
+      token.x,
+      token.type === 'comma' ? amountLayout.commaOffsetY : amountLayout.amountOffsetY,
+      token.type === 'comma' ? amountLayout.commaSize : amountLayout.amountSize,
+      token.type === 'comma' ? amountLayout.commaWeight : amountLayout.amountWeight,
+      token.fontFamily || fontFamily,
+    );
+  });
+  drawPart(
+    amountLayout.suffix,
+    suffixX,
+    amountLayout.suffixOffsetY,
+    amountLayout.suffixSize,
+    amountLayout.suffixWeight,
+  );
 };
 
 const resolveAssetDataUrl = async (assetPath) => {
@@ -247,6 +449,12 @@ const updatePreview = () => {
     const previewScale = previewWidth / width;
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
     fields.forEach((layer) => {
+      if (layer.amountLayout) {
+        const value = data[layer.field];
+        if (typeof value !== 'string' || !value.trim()) return;
+        if (templateOverlay) templateOverlay.append(renderAmountOverlayNode(layer, value, activeTemplate, previewScale));
+        return;
+      }
       const text = getOverlayText(layer, data);
       if (!text) return;
       const node = document.createElement('div');
@@ -261,7 +469,6 @@ const updatePreview = () => {
       node.style.fontWeight = String(layer.fontWeight || 400);
       node.style.fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       node.style.lineHeight = String(layer.lineHeight || 1.1);
-      node.style.letterSpacing = `${((layer.letterSpacing || 0) / scaleX) * previewScale}px`;
       if (scaleX !== 1) {
         node.style.transform = `scaleX(${scaleX})`;
         node.style.transformOrigin = 'left top';
@@ -393,6 +600,23 @@ const captureReceiptImage = async () => {
     const values = getFormData();
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
     fields.forEach((layer) => {
+      if (layer.amountLayout) {
+        const value = values[layer.field];
+        if (typeof value !== 'string' || !value.trim()) return;
+        directCtx.save();
+        directCtx.beginPath();
+        directCtx.rect(layer.x || 0, layer.y || 0, layer.width || templateExportWidth, layer.height || 100);
+        directCtx.clip();
+        drawAmountOverlay(
+          directCtx,
+          layer,
+          value,
+          layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT,
+          layer.color,
+        );
+        directCtx.restore();
+        return;
+      }
       const text = getOverlayText(layer, values);
       if (!text) return;
       const fontWeight = layer.fontWeight || 400;
@@ -400,7 +624,6 @@ const captureReceiptImage = async () => {
       const fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       const color = layer.color || '#2f3b4b';
       const align = layer.align || 'left';
-      const letterSpacing = layer.letterSpacing || 0;
       const scaleX = layer.scaleX || 1;
       const x = layer.x || 0;
       const y = layer.y || 0;
@@ -416,11 +639,11 @@ const captureReceiptImage = async () => {
       directCtx.rect(x, y, width, height);
       directCtx.clip();
       if (scaleX === 1) {
-        fillSpacedText(directCtx, text, x, y, width, align, letterSpacing);
+        drawTextLayer(directCtx, text, x, y, width, align);
       } else {
         directCtx.translate(x, y);
         directCtx.scale(scaleX, 1);
-        fillSpacedText(directCtx, text, 0, 0, width / scaleX, align, letterSpacing / scaleX);
+        drawTextLayer(directCtx, text, 0, 0, width / scaleX, align);
       }
       directCtx.restore();
     });
@@ -640,6 +863,3 @@ if ('serviceWorker' in navigator) {
   });
 }
 initialize();
-
-
-
