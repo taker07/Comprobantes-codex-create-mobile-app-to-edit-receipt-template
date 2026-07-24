@@ -1,5 +1,27 @@
-const CACHE_NAME = 'comprobantes-v11';
-const ASSETS = ['.', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'bbva-logo.png', 'bbva-logo.svg'];
+const CACHE_NAME = 'comprobantes-v17';
+const ASSETS = [
+  '.',
+  'index.html',
+  'styles.css',
+  'app.js',
+  'template-renderer.js',
+  'template-designer.html',
+  'template-designer.css',
+  'template-designer.js',
+  'manifest.webmanifest',
+  'icon.svg',
+  'bbva-logo.png',
+  'bbva-logo.svg',
+  'templates/index.json',
+  'templates/defaults/bbva.standard.json',
+  'templates/defaults/banorte.detail.json',
+  'templates/defaults/banorte.base.json',
+  'templates/assets/banorte-cb.png',
+  'templates/assets/banorte-detail.jpg',
+  'templates/assets/bbva-share.jpg',
+  'templates/assets/fonts/Montserrat-Variable.ttf',
+  'templates/assets/fonts/Montserrat-OFL.txt',
+];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

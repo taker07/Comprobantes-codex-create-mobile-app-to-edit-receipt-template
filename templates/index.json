@@ -3,8 +3,14 @@
   "templates": [
     {
       "id": "bbva",
-      "name": "BBVA estándar",
+      "name": "BBVA compartir",
       "path": "defaults/bbva.standard.json",
+      "type": "default"
+    },
+    {
+      "id": "banorte-detail",
+      "name": "Banorte detalle",
+      "path": "defaults/banorte.detail.json",
       "type": "default"
     },
     {

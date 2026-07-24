@@ -1,0 +1,177 @@
+{
+  "type": "text-parameter-reference",
+  "name": "Parámetros de texto BBVA compartir",
+  "referenceSize": {
+    "width": 412,
+    "height": 1600
+  },
+  "valueStyle": {
+    "fontFamily": "Arial, \"Helvetica Neue\", sans-serif",
+    "fontSize": 20,
+    "fontWeight": 600,
+    "lineHeight": 1.2,
+    "scaleX": 1,
+    "color": "#121E41",
+    "align": "left"
+  },
+  "title": {
+    "text": "COMPROBANTE DE LA OPERACION",
+    "x": 27,
+    "y": 118,
+    "width": 340,
+    "height": 24,
+    "fontFamily": "Arial, \"Helvetica Neue\", sans-serif",
+    "fontSize": 20,
+    "fontWeight": 600,
+    "lineHeight": 1.2,
+    "scaleX": 1,
+    "color": "#004481",
+    "align": "left"
+  },
+  "valueFields": [
+    {
+      "id": "operationType",
+      "field": "operationType",
+      "x": 45,
+      "y": 216,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "folio",
+      "field": "folio",
+      "x": 45,
+      "y": 295,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "dateText",
+      "field": "dateText",
+      "x": 45,
+      "y": 374,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "timeText",
+      "field": "timeText",
+      "x": 45,
+      "y": 454,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "concept",
+      "field": "concept",
+      "x": 45,
+      "y": 534,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "trackingKey",
+      "field": "trackingKey",
+      "x": 45,
+      "y": 613,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "amountText",
+      "field": "amountText",
+      "x": 45,
+      "y": 727,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "sourceAccount",
+      "field": "sourceAccount",
+      "x": 45,
+      "y": 861,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "beneficiaryName",
+      "field": "beneficiaryName",
+      "x": 45,
+      "y": 976,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "bankName",
+      "field": "bankName",
+      "x": 45,
+      "y": 1056,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "destinationAccount",
+      "field": "destinationAccount",
+      "x": 45,
+      "y": 1136,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "verificationUrl",
+      "field": "verificationUrl",
+      "x": 45,
+      "y": 1281,
+      "width": 318,
+      "height": 24
+    },
+    {
+      "id": "clarificationUrl",
+      "field": "clarificationUrl",
+      "x": 45,
+      "y": 1391,
+      "width": 318,
+      "height": 24
+    }
+  ],
+  "labelStyle": {
+    "fontFamily": "Arial, \"Helvetica Neue\", sans-serif",
+    "fontSize": 20,
+    "fontWeight": 400,
+    "lineHeight": 1.2,
+    "scaleX": 1,
+    "color": "#121E41",
+    "align": "left",
+    "x": 45
+  },
+  "labelTopPositions": {
+    "operationType": 185,
+    "folio": 264,
+    "dateText": 343,
+    "timeText": 423,
+    "concept": 502,
+    "trackingKey": 582,
+    "amountText": 697,
+    "sourceAccount": 830,
+    "beneficiaryName": 945,
+    "bankName": 1025,
+    "destinationAccount": 1104,
+    "verificationLabel": 1219,
+    "verificationPrefix": 1254,
+    "clarificationLabel": 1330,
+    "clarificationPrefix": 1365
+  },
+  "footer": {
+    "x": 36,
+    "y": 1460,
+    "width": 340,
+    "height": 124,
+    "fontFamily": "Arial, \"Helvetica Neue\", sans-serif",
+    "fontSize": 14,
+    "fontWeight": 400,
+    "lineHeight": 2.214,
+    "scaleX": 1,
+    "color": "rgba(72, 74, 80, 0.68)",
+    "align": "left"
+  }
+}

@@ -2,6 +2,7 @@
   "id": "banorte",
   "name": "Banorte (base)",
   "type": "background",
+  "formGroup": "banorte-summary",
   "backgroundImage": "assets/banorte-cb.png",
   "overlayFontFamily": "\"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
   "export": {

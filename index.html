@@ -32,10 +32,29 @@
             <button class="ghost-button" id="loadSample" type="button">Ejemplo</button>
           </div>
 
+          <nav class="form-steps" aria-label="Secciones del editor">
+            <a href="#templateOptions">1. Diseño</a>
+            <a href="#receiptData">2. Datos</a>
+            <a href="#receiptPreview">3. Revisar</a>
+          </nav>
+
           <form id="receiptForm" autocomplete="on">
+            <fieldset class="form-card">
+              <legend>Usuario</legend>
+              <label>Perfil
+                <select name="userProfile" id="userProfileSelect">
+                  <option value="usuario-1">Usuario 1</option>
+                  <option value="usuario-2">Usuario 2</option>
+                  <option value="usuario-3">Usuario 3</option>
+                </select>
+              </label>
+              <p class="field-help">Cada perfil guarda sus propios datos frecuentes en este navegador.</p>
+            </fieldset>
+
             <fieldset class="form-card" id="templateOptions">
               <legend>Plantilla</legend>
-              <label>Opción de plantilla<select name="templateId" id="templateSelect"></select></label>
+              <label>Diseño<select name="templateId" id="templateSelect"></select></label>
+              <p class="field-help" id="templateHelp">Elige un diseño y completa únicamente los datos que utiliza.</p>
               <label>Nombre para guardar<input name="templateName" type="text" /></label>
               <label>Texto del logo<input name="bankBrand" type="text" value="BBVA" /></label>
               <label>Título superior<input name="operationHeading" type="text" value="COMPROBANTE DE LA OPERACION" /></label>
@@ -53,23 +72,26 @@
               </div>
             </fieldset>
 
-            <fieldset class="form-card">
+            <fieldset class="form-card" id="receiptData" data-field-group="bbva">
               <legend>Contenido</legend>
-              <label>Tipo de operación<input name="operationType" type="text" value="Transferencia a terceros" /></label>
-              <label>Folio de la operación<input name="folio" type="text" value="0037466735" /></label>
+              <label>Tipo de operación<input name="operationType" type="text" value="Transferencia a otros bancos" /></label>
+              <label>Folio de la operación<input name="folio" type="text" value="3805688541" /></label>
               <div class="field-grid">
-                <label>Fecha (texto)<input name="dateText" type="text" value="16 mayo 2026" /></label>
-                <label>Hora (texto)<input name="timeText" type="text" value="12:27 h" /></label>
+                <label>Fecha (texto)<input name="dateText" type="text" value="23 julio 2026" /></label>
+                <label>Hora (texto)<input name="timeText" type="text" value="13:28 h" /></label>
               </div>
-              <label>Concepto<input name="concept" type="text" value="concepto" /></label>
-              <label>Importe transferido<input name="amountText" type="text" value="$ 0.10" /></label>
+              <label>Concepto<input name="concept" type="text" value="trans" /></label>
+              <label>Clave de rastreo<input name="trackingKey" type="text" value="MBAN01002607230077445947" /></label>
+              <label>Importe transferido<input name="amountText" type="text" value="$ 10.00" /></label>
               <label>Cuenta de origen<input name="sourceAccount" type="text" value="•5639" /></label>
-              <label>Nombre del beneficiario<input name="beneficiaryName" type="text" value="Omar Alejandro L" /></label>
-              <label>Nombre del banco<input name="bankName" type="text" value="Cuenta BBVA" /></label>
-              <label>Cuenta de destino<input name="destinationAccount" type="text" value="•5629" /></label>
+              <label>Nombre del beneficiario<input name="beneficiaryName" type="text" value="Jacqueline Beatriz mendez lop" /></label>
+              <label>Nombre del banco<input name="bankName" type="text" value="Cuenta MERCADO PAGO W" /></label>
+              <label>Cuenta de destino<input name="destinationAccount" type="text" value="•7157" /></label>
+              <label>Enlace de verificación<input name="verificationUrl" type="url" value="https://www.banxico.org.mx/cep/" /></label>
+              <label>Sitio para aclaraciones<input name="clarificationUrl" type="text" value="www.bbva.mx" /></label>
             </fieldset>
 
-            <fieldset class="form-card">
+            <fieldset class="form-card" data-field-group="banorte-summary">
               <legend>Campos Banorte</legend>
               <label>Importe visible<input name="amountDisplay" type="text" value="$ 2,800.00 MN" /></label>
               <label>Nombre destinatario<input name="destinatarioNombre" type="text" value="DAVID M**** M**** M****" /></label>
@@ -79,6 +101,26 @@
               <label>Concepto transferencia<input name="conceptoTransferencia" type="text" value="David Morales porton" /></label>
               <label>Alias destinatario<input name="aliasDestinatario" type="text" value="porton" /></label>
               <label>Fecha y hora operación<input name="operationDateTime" type="text" value="25-05-2026 - 17:49:00" /></label>
+            </fieldset>
+
+            <fieldset class="form-card" data-field-group="banorte-detail">
+              <legend>Detalle Banorte</legend>
+              <label>Cantidad<input name="detailAmount" type="text" value="$ 900.00 MN" inputmode="decimal" /></label>
+              <label>Fecha y hora<input name="detailDateTime" type="text" value="08-07-2026 - 13:47:21" /></label>
+              <label>Cuenta destino<input name="detailDestinationAccount" type="text" value="Tarjeta ****9756" /></label>
+              <label>Banco destino<input name="detailDestinationBank" type="text" value="BANCOPPEL" /></label>
+              <label>Cuenta origen<textarea name="detailSourceAccount" rows="2">CUENTA ENLACE PERSONAL SALDO
+PROMEDIO ****9358</textarea></label>
+              <label>Ordenante<input name="detailSender" type="text" value="Joel Daniel Morales Mendez" /></label>
+              <label>RFC del ordenante<input name="detailSenderRfc" type="text" value="MOMJ911127ND1" /></label>
+              <div class="field-grid">
+                <label>Comisión<input name="detailCommission" type="text" value="$0.00 MN" inputmode="decimal" /></label>
+                <label>IVA de la comisión<input name="detailTax" type="text" value="$0.00 MN" inputmode="decimal" /></label>
+              </div>
+              <label>Concepto de transferencia<input name="detailConcept" type="text" value="Tsuro" /></label>
+              <label>Referencia<input name="detailReference" type="text" value="260708" inputmode="numeric" /></label>
+              <label>Tipo de operación<input name="detailOperationType" type="text" value="Transferencia única" /></label>
+              <label>Clave de rastreo<input name="detailTrackingKey" type="text" value="38432P01202607085512974778" /></label>
             </fieldset>
           </form>
         </section>

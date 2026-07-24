@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Template Designer | Desarrollo</title>
+    <link rel="stylesheet" href="template-designer.css" />
+  </head>
+  <body>
+    <main class="designer-shell">
+      <aside class="designer-panel">
+        <header>
+          <p class="eyebrow">Herramienta de desarrollo</p>
+          <h1>Editor de plantilla</h1>
+        </header>
+
+        <section class="control-group">
+          <label>Plantilla existente<select id="templateRegistrySelect"></select></label>
+          <button id="loadRegistryTemplate" type="button">Cargar plantilla seleccionada</button>
+          <div class="grid">
+            <button id="createBlankTemplate" type="button">Nueva vacía</button>
+            <button id="createFromCurrentTemplate" type="button">Duplicar actual</button>
+          </div>
+          <div class="grid">
+            <label>ID<input id="templateIdInput" type="text" placeholder="mi-plantilla" /></label>
+            <label>Nombre<input id="templateNameInput" type="text" placeholder="Mi plantilla" /></label>
+          </div>
+          <label>Plantilla JSON<input id="templateFile" type="file" accept="application/json" /></label>
+          <label>Imagen de fondo<input id="backgroundFile" type="file" accept="image/*" /></label>
+          <div class="grid">
+            <button id="loadDefaultTemplate" type="button">Cargar Banorte detalle</button>
+            <button id="loadBbvaTemplate" type="button">Cargar BBVA compartir</button>
+          </div>
+          <div class="grid">
+            <button id="downloadTemplate" type="button">Descargar JSON</button>
+            <button id="exportProof" type="button">Descargar prueba JPG</button>
+          </div>
+          <button id="applyToApp" class="primary" type="button">Aplicar y abrir en la app</button>
+          <button id="updateAppJson" type="button">Actualizar JSON de la aplicación</button>
+          <p class="help-text">
+            La primera actualización pide elegir el JSON anterior. Las siguientes lo reemplazan directamente durante esta sesión.
+          </p>
+          <div class="grid">
+            <button id="undoChange" type="button" disabled>Deshacer</button>
+            <button id="redoChange" type="button" disabled>Rehacer</button>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <h2>Tipografía de la plantilla</h2>
+          <label>Fuente general<select id="templateFontFamily"></select></label>
+          <div class="grid">
+            <label>Nombre para la fuente<input id="customFontName" type="text" placeholder="Mi fuente" /></label>
+            <label>Agregar archivo<input id="customFontFile" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" /></label>
+          </div>
+          <p class="help-text">
+            La fuente agregada se incrusta en el JSON para que el editor y la descarga usen exactamente el mismo archivo.
+          </p>
+        </section>
+
+        <section class="control-group">
+          <label>Campo<select id="fieldSelect"></select></label>
+          <label>Texto de prueba
+            <textarea id="fieldSampleText" class="compact" rows="2" spellcheck="false"></textarea>
+          </label>
+          <div class="grid">
+            <label>Fuente<select id="fieldFontFamily"></select></label>
+            <label>Peso<input id="fieldFontWeight" type="number" min="100" max="900" step="100" /></label>
+            <label>Escala horizontal<input id="fieldScaleX" type="number" min="0.5" max="2" step="0.001" /></label>
+            <label>Interlineado<input id="fieldLineHeight" type="number" min="0.5" max="3" step="0.01" /></label>
+          </div>
+          <div class="grid">
+            <label>X<input id="fieldX" type="number" step="1" /></label>
+            <label>Y<input id="fieldY" type="number" step="1" /></label>
+            <label>Ancho<input id="fieldWidth" type="number" step="1" min="1" /></label>
+            <label>Alto<input id="fieldHeight" type="number" step="1" min="1" /></label>
+            <label>Tamaño<input id="fieldFontSize" type="number" step="0.25" min="1" /></label>
+            <label>Color<input id="fieldColor" type="color" /></label>
+          </div>
+          <label>Alineación
+            <select id="fieldAlign">
+              <option value="left">Izquierda</option>
+              <option value="center">Centro</option>
+              <option value="right">Derecha</option>
+            </select>
+          </label>
+          <button id="centerField" type="button">Centrar horizontal</button>
+          <div class="grid">
+            <button id="addField" type="button">Agregar campo</button>
+            <button id="duplicateField" type="button">Duplicar campo</button>
+            <button id="deleteField" class="danger" type="button">Eliminar campo</button>
+          </div>
+        </section>
+
+        <section class="control-group" id="amountControls" hidden>
+          <h2>Importe</h2>
+          <div class="grid">
+            <label>Tamaño moneda<input id="currencyFontSize" type="number" step="0.25" min="1" /></label>
+            <label>Tamaño cantidad<input id="amountFontSize" type="number" step="0.25" min="1" /></label>
+            <label>Tamaño sufijo<input id="suffixFontSize" type="number" step="0.25" min="1" /></label>
+            <label>Peso moneda<input id="currencyFontWeight" type="number" step="100" min="100" max="900" /></label>
+            <label>Peso cantidad<input id="amountFontWeight" type="number" step="100" min="100" max="900" /></label>
+            <label>Peso sufijo<input id="suffixFontWeight" type="number" step="100" min="100" max="900" /></label>
+            <label>Escala X moneda<input id="currencyScaleX" type="number" step="0.001" min="0.5" max="2" /></label>
+            <label>Escala X cantidad<input id="amountScaleX" type="number" step="0.001" min="0.5" max="2" /></label>
+            <label>Escala X sufijo<input id="suffixScaleX" type="number" step="0.001" min="0.5" max="2" /></label>
+            <label>X moneda<input id="currencyOffsetX" type="number" step="1" /></label>
+            <label>X sufijo<input id="suffixOffsetX" type="number" step="1" /></label>
+            <label>Y moneda<input id="currencyOffsetY" type="number" step="1" /></label>
+            <label>Y cantidad<input id="amountOffsetY" type="number" step="1" /></label>
+            <label>Y sufijo<input id="suffixOffsetY" type="number" step="1" /></label>
+            <label>Gap moneda<input id="currencyGap" type="number" step="1" /></label>
+            <label>Gap sufijo<input id="suffixGap" type="number" step="1" /></label>
+          </div>
+        </section>
+
+        <section class="control-group">
+          <label>JSON editable<textarea id="jsonOutput" rows="12" spellcheck="false"></textarea></label>
+          <button id="applyJson" type="button">Aplicar JSON</button>
+          <p class="editor-status" id="editorStatus" role="status">Sin cambios</p>
+        </section>
+      </aside>
+
+      <section class="stage-wrap">
+        <div class="stage-toolbar">
+          <span id="templateName">Sin plantilla</span>
+          <span id="stageSize">0 x 0</span>
+        </div>
+        <div class="stage-scroll">
+          <div class="stage" id="stage">
+            <img id="backgroundImage" alt="" />
+            <canvas id="renderCanvas"></canvas>
+            <div id="overlayLayer"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="template-designer.js" type="module"></script>
+  </body>
+</html>

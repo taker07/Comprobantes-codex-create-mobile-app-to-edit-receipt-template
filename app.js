@@ -1,3 +1,13 @@
+import {
+  DEFAULT_OVERLAY_FONT,
+  ensureTemplateFontsAvailable as ensureRendererFontsAvailable,
+  fitAmountLayout,
+  getAmountLayout,
+  getAmountTokenPositions,
+  renderTemplateToCanvas,
+  splitAmountDisplay,
+} from './template-renderer.js';
+
 const form = document.querySelector('#receiptForm');
 const preview = document.querySelector('#receiptPreview');
 const saveStatus = document.querySelector('#saveStatus');
@@ -14,16 +24,22 @@ const exportTemplatesButton = document.querySelector('#exportTemplates');
 const importTemplatesInput = document.querySelector('#importTemplatesInput');
 const templateOverlay = document.querySelector('#templateOverlay');
 const appVersion = document.querySelector('#appVersion');
+const templateHelp = document.querySelector('#templateHelp');
+const dataGroups = document.querySelectorAll('[data-field-group]');
+const userProfileSelect = document.querySelector('#userProfileSelect');
 
-const DRAFT_STORAGE_KEY = 'comprobantes.bbvaDraft.v1';
+const DRAFT_STORAGE_KEY = 'comprobantes.receiptDraft.v2';
 const TEMPLATE_STORAGE_KEY = 'comprobantes.bbvaTemplates.v1';
+const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
+const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
+const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.0.1-md:d,c';
+const APP_VERSION = 'v1.3.0';
 
 const fallbackTemplates = [
   {
     id: 'bbva',
-    name: 'BBVA estándar',
+    name: 'BBVA compartir',
     bankBrand: 'BBVA',
     operationHeading: 'COMPROBANTE DE LA OPERACION',
     footerText:
@@ -33,19 +49,22 @@ const fallbackTemplates = [
 
 const sampleReceipt = {
   templateId: 'bbva',
-  templateName: 'BBVA estándar',
+  templateName: 'BBVA compartir',
   bankBrand: 'BBVA',
   operationHeading: 'COMPROBANTE DE LA OPERACION',
-  operationType: 'Transferencia a terceros',
-  folio: '0037466735',
-  dateText: '16 mayo 2026',
-  timeText: '12:27 h',
-  concept: 'concepto',
-  amountText: '$ 0.10',
+  operationType: 'Transferencia a otros bancos',
+  folio: '3805688541',
+  dateText: '23 julio 2026',
+  timeText: '13:28 h',
+  concept: 'trans',
+  trackingKey: 'MBAN01002607230077445947',
+  amountText: '$ 10.00',
   sourceAccount: '•5639',
-  beneficiaryName: 'Omar Alejandro L',
-  bankName: 'Cuenta BBVA',
-  destinationAccount: '•5629',
+  beneficiaryName: 'Jacqueline Beatriz mendez lop',
+  bankName: 'Cuenta MERCADO PAGO W',
+  destinationAccount: '•7157',
+  verificationUrl: 'https://www.banxico.org.mx/cep/',
+  clarificationUrl: 'www.bbva.mx',
   amountDisplay: '$ 2,800.00 MN',
   destinatarioNombre: 'DAVID M**** M**** M****',
   destinatarioBanco: 'BANORTE',
@@ -54,12 +73,26 @@ const sampleReceipt = {
   conceptoTransferencia: 'David Morales porton',
   aliasDestinatario: 'porton',
   operationDateTime: '25-05-2026 - 17:49:00',
+  detailAmount: '$ 900.00 MN',
+  detailDateTime: '08-07-2026 - 13:47:21',
+  detailDestinationAccount: 'Tarjeta ****9756',
+  detailDestinationBank: 'BANCOPPEL',
+  detailSourceAccount: 'CUENTA ENLACE PERSONAL SALDO\nPROMEDIO ****9358',
+  detailSender: 'Joel Daniel Morales Mendez',
+  detailSenderRfc: 'MOMJ911127ND1',
+  detailCommission: '$0.00 MN',
+  detailTax: '$0.00 MN',
+  detailConcept: 'Tsuro',
+  detailReference: '260708',
+  detailOperationType: 'Transferencia única',
+  detailTrackingKey: '38432P01202607085512974778',
   footerText:
     'BBVA México, S.A., Institución de Banca Múltiple, Grupo Financiero BBVA México. Avenida Paseo de la Reforma 510, colonia Juárez, código postal 06600, alcaldía Cuauhtémoc, Ciudad de México.',
 };
 
 let customTemplates = [];
 let systemTemplates = [...fallbackTemplates];
+let activeUserProfile = 'usuario-1';
 const LOGO_PRIMARY_SRC = 'bbva-logo.png';
 const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
 let resolvedLogoDataUrl = null;
@@ -73,19 +106,91 @@ const EXPORT_SETTINGS = {
   width: 485,
   height: 1600,
 };
-const DEFAULT_OVERLAY_FONT = '"Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const ensureTemplateFontsAvailable = (template) => ensureRendererFontsAvailable(template);
+const USER_DEFAULT_FIELD_NAMES = [
+  'operationType',
+  'concept',
+  'sourceAccount',
+  'beneficiaryName',
+  'bankName',
+  'destinationAccount',
+  'destinatarioNombre',
+  'destinatarioBanco',
+  'sourceAccountSuffix',
+  'destinationCardSuffix',
+  'conceptoTransferencia',
+  'aliasDestinatario',
+  'detailDestinationAccount',
+  'detailDestinationBank',
+  'detailSourceAccount',
+  'detailSender',
+  'detailSenderRfc',
+  'detailCommission',
+  'detailTax',
+  'detailConcept',
+  'detailOperationType',
+];
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
 const getTemplates = () => [...systemTemplates, ...customTemplates];
 const getTemplateById = (templateId) => getTemplates().find((t) => t.id === templateId) || systemTemplates[0];
 const isCustomTemplate = (templateId) => templateId?.startsWith(CUSTOM_TEMPLATE_PREFIX);
 const persistCustomTemplates = () => localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(customTemplates));
+const cloneTemplate = (template) => JSON.parse(JSON.stringify(template || {}));
 
 const setFormData = (data) => {
   Object.entries(data).forEach(([key, value]) => {
     const field = form.elements[key];
     if (field) field.value = value;
   });
+};
+
+const padDatePart = (value) => String(value).padStart(2, '0');
+
+const getCurrentDateTimeValues = (date = new Date()) => {
+  const day = padDatePart(date.getDate());
+  const month = date.toLocaleDateString('es-MX', { month: 'long' });
+  const year = date.getFullYear();
+  const hours = padDatePart(date.getHours());
+  const minutes = padDatePart(date.getMinutes());
+  const seconds = padDatePart(date.getSeconds());
+
+  return {
+    dateText: `${Number(day)} ${month} ${year}`,
+    timeText: `${hours}:${minutes} h`,
+    operationDateTime: `${day}-${padDatePart(date.getMonth() + 1)}-${year} - ${hours}:${minutes}:${seconds}`,
+    detailDateTime: `${day}-${padDatePart(date.getMonth() + 1)}-${year} - ${hours}:${minutes}:${seconds}`,
+  };
+};
+
+const applyCurrentDateTime = ({ render = false } = {}) => {
+  setFormData(getCurrentDateTimeValues());
+  if (render) updatePreview();
+};
+
+const getStoredUserDefaults = () => {
+  try {
+    return JSON.parse(localStorage.getItem(USER_DEFAULTS_STORAGE_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+};
+
+const saveUserDefaultsFromForm = (userId = activeUserProfile) => {
+  if (!userId) return;
+  const data = getFormData();
+  const defaults = {};
+  USER_DEFAULT_FIELD_NAMES.forEach((fieldName) => {
+    if (typeof data[fieldName] === 'string') defaults[fieldName] = data[fieldName];
+  });
+  const stored = getStoredUserDefaults();
+  stored[userId] = defaults;
+  localStorage.setItem(USER_DEFAULTS_STORAGE_KEY, JSON.stringify(stored));
+};
+
+const applyUserDefaults = (userId = activeUserProfile) => {
+  const defaults = getStoredUserDefaults()[userId];
+  if (defaults) setFormData(defaults);
 };
 
 const fillTemplateFields = (template) => {
@@ -133,144 +238,11 @@ const BANORTE_OVERLAY_FIELDS = [
 
 const getSelectedTemplate = () => getTemplateById(getFormData().templateId);
 
-const splitAmountDisplay = (value) => {
-  const text = typeof value === 'string' ? value.trim() : '';
-  const match = text.match(/^([^0-9-]*?)\s*([-+]?\d[\d,]*(?:\.\d+)?)\s*([^0-9]*)$/);
-  if (!match) return { currency: '', amount: text, suffix: '' };
-  return {
-    currency: match[1].trim(),
-    amount: match[2],
-    suffix: match[3].trim(),
-  };
-};
-
 const getOverlayText = (layer, values) => {
   const value = values[layer.field];
   if (typeof value !== 'string') return '';
   if (!layer.amountPart) return value;
   return splitAmountDisplay(value)[layer.amountPart] || '';
-};
-
-const drawTextLayer = (ctx, text, x, y, width, align) => {
-  const drawX = align === 'right' ? x + width : align === 'center' ? x + width / 2 : x;
-  ctx.fillText(text, drawX, y, width);
-};
-
-const getAmountLayout = (layer, value) => {
-  const parts = splitAmountDisplay(value);
-  const currency = parts.currency || '$';
-  const suffix = parts.suffix || 'MN';
-  return {
-    currency,
-    amount: parts.amount,
-    suffix,
-    currencySize: layer.currencyFontSize || 51,
-    amountSize: layer.amountFontSize || 78,
-    suffixSize: layer.suffixFontSize || 52,
-    currencyWeight: layer.currencyFontWeight || 400,
-    amountWeight: layer.amountFontWeight || 400,
-    suffixWeight: layer.suffixFontWeight || 400,
-    commaText: layer.commaText || ',',
-    commaFontFamily: layer.commaFontFamily || null,
-    commaSize: layer.commaFontSize || layer.amountFontSize || 78,
-    commaWeight: layer.commaFontWeight || 400,
-    commaOffsetY: layer.commaOffsetY || layer.amountOffsetY || 0,
-    commaGapBefore: layer.commaGapBefore || 0,
-    commaGapAfter: layer.commaGapAfter || 0,
-    currencyOffsetY: layer.currencyOffsetY || 20,
-    amountOffsetY: layer.amountOffsetY || 0,
-    suffixOffsetY: layer.suffixOffsetY || 23,
-    currencyGap: layer.currencyGap || 18,
-    suffixGap: layer.suffixGap || 28,
-  };
-};
-
-const getAmountTokens = (amount) => {
-  const tokens = [];
-  let digitBuffer = '';
-  [...amount].forEach((character) => {
-    if (character === ',') {
-      if (digitBuffer) tokens.push({ type: 'text', value: digitBuffer });
-      tokens.push({ type: 'comma', value: character });
-      digitBuffer = '';
-      return;
-    }
-    digitBuffer += character;
-  });
-  if (digitBuffer) tokens.push({ type: 'text', value: digitBuffer });
-  return tokens;
-};
-
-const measureAmountPart = (ctx, fontFamily, weight, size, text) => {
-  ctx.font = `${weight} ${size}px ${fontFamily}`;
-  return ctx.measureText(text).width;
-};
-
-const measureAmountValue = (ctx, fontFamily, amountLayout, scale) =>
-  getAmountTokens(amountLayout.amount).reduce((width, token) => {
-    if (token.type === 'comma') {
-      const commaFontFamily = amountLayout.commaFontFamily || fontFamily;
-      return (
-        width +
-        amountLayout.commaGapBefore * scale +
-        measureAmountPart(ctx, commaFontFamily, amountLayout.commaWeight, amountLayout.commaSize * scale, amountLayout.commaText) +
-        amountLayout.commaGapAfter * scale
-      );
-    }
-    return width + measureAmountPart(ctx, fontFamily, amountLayout.amountWeight, amountLayout.amountSize * scale, token.value);
-  }, 0);
-
-const fitAmountLayout = (ctx, fontFamily, amountLayout, maxWidth) => {
-  const measureAtScale = (scale) => {
-    const currencyWidth = measureAmountPart(
-      ctx,
-      fontFamily,
-      amountLayout.currencyWeight,
-      amountLayout.currencySize * scale,
-      amountLayout.currency,
-    );
-    const amountWidth = measureAmountValue(ctx, fontFamily, amountLayout, scale);
-    const suffixWidth = measureAmountPart(
-      ctx,
-      fontFamily,
-      amountLayout.suffixWeight,
-      amountLayout.suffixSize * scale,
-      amountLayout.suffix,
-    );
-    return {
-      currencyWidth,
-      amountWidth,
-      suffixWidth,
-      totalWidth:
-        currencyWidth +
-        amountLayout.currencyGap * scale +
-        amountWidth +
-        amountLayout.suffixGap * scale +
-        suffixWidth,
-    };
-  };
-
-  const fullSize = measureAtScale(1);
-  const scale = fullSize.totalWidth > maxWidth ? Math.max(maxWidth / fullSize.totalWidth, 0.72) : 1;
-  return { ...measureAtScale(scale), scale };
-};
-
-const getAmountTokenPositions = (ctx, fontFamily, amountLayout, scale, amountLeft) => {
-  let currentX = amountLeft;
-  return getAmountTokens(amountLayout.amount).map((token) => {
-    if (token.type === 'comma') {
-      const commaFontFamily = amountLayout.commaFontFamily || fontFamily;
-      currentX += amountLayout.commaGapBefore * scale;
-      const width = measureAmountPart(ctx, commaFontFamily, amountLayout.commaWeight, amountLayout.commaSize * scale, amountLayout.commaText);
-      const positionedToken = { ...token, value: amountLayout.commaText, fontFamily: commaFontFamily, x: currentX, width };
-      currentX += width + amountLayout.commaGapAfter * scale;
-      return positionedToken;
-    }
-    const width = measureAmountPart(ctx, fontFamily, amountLayout.amountWeight, amountLayout.amountSize * scale, token.value);
-    const positionedToken = { ...token, x: currentX, width };
-    currentX += width;
-    return positionedToken;
-  });
 };
 
 const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => {
@@ -291,9 +263,10 @@ const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => 
   node.style.width = `${maxWidth * previewScale}px`;
   node.style.height = `${(layer.height || 90) * previewScale}px`;
   node.style.color = layer.color || '#3D474E';
+  node.style.backgroundColor = layer.backgroundColor || 'transparent';
   node.style.fontFamily = fontFamily;
 
-  const createPart = (text, left, top, size, weight, partFontFamily = fontFamily) => {
+  const createPart = (text, left, top, size, weight, partFontFamily = fontFamily, horizontalScale = 1) => {
     const part = document.createElement('span');
     part.textContent = text;
     part.style.position = 'absolute';
@@ -303,6 +276,10 @@ const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => 
     part.style.fontWeight = String(weight);
     part.style.fontFamily = partFontFamily;
     part.style.lineHeight = '1';
+    if (horizontalScale !== 1) {
+      part.style.transform = `scaleX(${horizontalScale})`;
+      part.style.transformOrigin = 'left top';
+    }
     node.append(part);
   };
 
@@ -312,10 +289,12 @@ const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => 
   const amountTokens = measureCtx ? getAmountTokenPositions(measureCtx, fontFamily, amountLayout, fitted.scale, amountLeft) : [];
   createPart(
     amountLayout.currency,
-    currencyLeft,
+    currencyLeft + amountLayout.currencyOffsetX,
     amountLayout.currencyOffsetY * fitted.scale,
     amountLayout.currencySize,
     amountLayout.currencyWeight,
+    fontFamily,
+    amountLayout.currencyScaleX,
   );
   amountTokens.forEach((token) => {
     createPart(
@@ -325,60 +304,19 @@ const renderAmountOverlayNode = (layer, value, activeTemplate, previewScale) => 
       token.type === 'comma' ? amountLayout.commaSize : amountLayout.amountSize,
       token.type === 'comma' ? amountLayout.commaWeight : amountLayout.amountWeight,
       token.fontFamily || fontFamily,
+      token.type === 'comma' ? 1 : amountLayout.amountScaleX,
     );
   });
   createPart(
     amountLayout.suffix,
-    suffixLeft,
+    suffixLeft + amountLayout.suffixOffsetX,
     amountLayout.suffixOffsetY * fitted.scale,
     amountLayout.suffixSize,
     amountLayout.suffixWeight,
+    fontFamily,
+    amountLayout.suffixScaleX,
   );
   return node;
-};
-
-const drawAmountOverlay = (ctx, layer, value, fontFamily, color) => {
-  const amountLayout = getAmountLayout(layer, value);
-  const maxWidth = layer.width || 540;
-  const fitted = fitAmountLayout(ctx, fontFamily, amountLayout, maxWidth);
-  const startX = layer.x + (layer.align === 'center' ? (maxWidth - fitted.totalWidth) / 2 : 0);
-  const currencyX = startX;
-  const amountX = currencyX + fitted.currencyWidth + amountLayout.currencyGap * fitted.scale;
-  const suffixX = amountX + fitted.amountWidth + amountLayout.suffixGap * fitted.scale;
-  const amountTokens = getAmountTokenPositions(ctx, fontFamily, amountLayout, fitted.scale, amountX);
-
-  const drawPart = (text, x, offsetY, size, weight, partFontFamily = fontFamily) => {
-    ctx.font = `${weight} ${size * fitted.scale}px ${partFontFamily}`;
-    ctx.fillText(text, x, layer.y + offsetY * fitted.scale);
-  };
-
-  ctx.fillStyle = color || '#3D474E';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  drawPart(
-    amountLayout.currency,
-    currencyX,
-    amountLayout.currencyOffsetY,
-    amountLayout.currencySize,
-    amountLayout.currencyWeight,
-  );
-  amountTokens.forEach((token) => {
-    drawPart(
-      token.value,
-      token.x,
-      token.type === 'comma' ? amountLayout.commaOffsetY : amountLayout.amountOffsetY,
-      token.type === 'comma' ? amountLayout.commaSize : amountLayout.amountSize,
-      token.type === 'comma' ? amountLayout.commaWeight : amountLayout.amountWeight,
-      token.fontFamily || fontFamily,
-    );
-  });
-  drawPart(
-    amountLayout.suffix,
-    suffixX,
-    amountLayout.suffixOffsetY,
-    amountLayout.suffixSize,
-    amountLayout.suffixWeight,
-  );
 };
 
 const resolveAssetDataUrl = async (assetPath) => {
@@ -426,16 +364,30 @@ const updatePreview = () => {
   preview.querySelector('[data-preview="footerText"]').textContent = template.footerText;
   preview.classList.remove('template-background');
   preview.style.backgroundImage = '';
+  preview.style.aspectRatio = '';
   if (templateOverlay) templateOverlay.innerHTML = '';
 
-  selectedTemplateName.textContent = template.name;
+  selectedTemplateName.textContent = activeTemplate?.name || template.name;
+  const usesBackground = Boolean(activeTemplate?.backgroundImage || activeTemplate?.backgroundImageDataUrl);
+  const activeFormGroup = activeTemplate?.formGroup || (usesBackground ? 'banorte-summary' : 'bbva');
+  dataGroups.forEach((group) => {
+    group.hidden = group.dataset.fieldGroup !== activeFormGroup;
+  });
+  if (templateHelp) {
+    const fieldCount = Array.isArray(activeTemplate?.overlayFields) ? activeTemplate.overlayFields.length : 0;
+    templateHelp.textContent = usesBackground
+      ? `Plantilla sobre imagen · ${fieldCount} campos posicionados. Puedes corregirlos en el diseñador avanzado.`
+      : 'Diseño detallado con secciones amplias y texto legal.';
+  }
   localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
   updateTemplateControls();
   saveStatus.textContent = 'Guardado local';
 
-  if (activeTemplate?.backgroundImage) {
+  if (usesBackground) {
     preview.classList.add('template-background');
-    resolveAssetDataUrl(activeTemplate.backgroundImage).then((bgDataUrl) => {
+    Promise.resolve(
+      activeTemplate.backgroundImageDataUrl || resolveAssetDataUrl(activeTemplate.backgroundImage),
+    ).then((bgDataUrl) => {
       if (!bgDataUrl) {
         saveStatus.textContent = 'Error: fondo de plantilla no disponible';
         return;
@@ -445,6 +397,7 @@ const updatePreview = () => {
 
     const width = activeTemplate?.export?.width || 1010;
     const height = activeTemplate?.export?.height || 1600;
+    preview.style.aspectRatio = `${width} / ${height}`;
     const previewWidth = preview.clientWidth || 1;
     const previewScale = previewWidth / width;
     const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
@@ -452,7 +405,10 @@ const updatePreview = () => {
       if (layer.amountLayout) {
         const value = data[layer.field];
         if (typeof value !== 'string' || !value.trim()) return;
-        if (templateOverlay) templateOverlay.append(renderAmountOverlayNode(layer, value, activeTemplate, previewScale));
+        if (templateOverlay) {
+          const node = renderAmountOverlayNode(layer, value, activeTemplate, previewScale);
+          templateOverlay.append(node);
+        }
         return;
       }
       const text = getOverlayText(layer, data);
@@ -469,11 +425,13 @@ const updatePreview = () => {
       node.style.fontWeight = String(layer.fontWeight || 400);
       node.style.fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
       node.style.lineHeight = String(layer.lineHeight || 1.1);
+      node.style.whiteSpace = layer.multiline ? 'pre-wrap' : 'nowrap';
       if (scaleX !== 1) {
         node.style.transform = `scaleX(${scaleX})`;
         node.style.transformOrigin = 'left top';
       }
       node.style.color = layer.color || '#2f3b4b';
+      node.style.backgroundColor = layer.backgroundColor || 'transparent';
       node.style.textAlign = layer.align || 'left';
       if (templateOverlay) templateOverlay.append(node);
     });
@@ -530,15 +488,23 @@ const ensureLogoAvailable = async () => {
   });
 };
 
-const handleTemplateChange = () => {
-  fillTemplateFields(getTemplateById(templateSelect.value));
+const handleTemplateChange = async () => {
+  const template = getTemplateById(templateSelect.value);
+  fillTemplateFields(template);
+  if (template.defaultValues) {
+    setFormData({ ...template.defaultValues, templateId: template.id });
+  }
+  applyUserDefaults();
+  applyCurrentDateTime();
+  await ensureTemplateFontsAvailable(template);
   updatePreview();
 };
 
 const saveCustomTemplate = () => {
   const formTemplate = getTemplateFromForm();
   const templateId = isCustomTemplate(formTemplate.id) ? formTemplate.id : `${CUSTOM_TEMPLATE_PREFIX}${Date.now()}`;
-  const customTemplate = { ...formTemplate, id: templateId };
+  const activeTemplate = cloneTemplate(getSelectedTemplate());
+  const customTemplate = { ...activeTemplate, ...formTemplate, id: templateId };
   const existingIndex = customTemplates.findIndex((t) => t.id === templateId);
   if (existingIndex >= 0) customTemplates[existingIndex] = customTemplate;
   else customTemplates.push(customTemplate);
@@ -562,6 +528,8 @@ const deleteCustomTemplate = () => {
 };
 
 const captureReceiptImage = async () => {
+  const activeTemplate = getSelectedTemplate();
+  await ensureTemplateFontsAvailable(activeTemplate);
   await ensureLogoAvailable();
   const img = preview.querySelector('img.bbva-logo');
   if (img && !img.complete) {
@@ -573,19 +541,15 @@ const captureReceiptImage = async () => {
 
   const logoDataUrl = resolvedLogoDataUrl || (img ? img.src : null);
   const previewBg = getComputedStyle(preview).backgroundColor || '#f7f9f8';
-  const activeTemplate = getSelectedTemplate();
   const templateExportWidth = activeTemplate?.export?.width ?? EXPORT_SETTINGS.width;
   const templateExportHeight = activeTemplate?.export?.height ?? EXPORT_SETTINGS.height;
-  const isBackgroundTemplate = Boolean(activeTemplate?.backgroundImage);
+  const isBackgroundTemplate = Boolean(activeTemplate?.backgroundImage || activeTemplate?.backgroundImageDataUrl);
 
   if (isBackgroundTemplate) {
-    const bgDataUrl = await resolveAssetDataUrl(activeTemplate.backgroundImage);
+    const bgDataUrl =
+      activeTemplate.backgroundImageDataUrl || (await resolveAssetDataUrl(activeTemplate.backgroundImage));
     if (!bgDataUrl) throw new Error('No se pudo cargar el fondo de la plantilla Banorte.');
     const directCanvas = document.createElement('canvas');
-    directCanvas.width = templateExportWidth;
-    directCanvas.height = templateExportHeight;
-    const directCtx = directCanvas.getContext('2d');
-    if (!directCtx) throw new Error('No se pudo preparar el render de Banorte.');
 
     const bgImage = await new Promise((resolve) => {
       const image = new Image();
@@ -595,57 +559,17 @@ const captureReceiptImage = async () => {
     });
     if (!bgImage) throw new Error('No se pudo decodificar el fondo de Banorte.');
 
-    directCtx.drawImage(bgImage, 0, 0, templateExportWidth, templateExportHeight);
-
-    const values = getFormData();
-    const fields = Array.isArray(activeTemplate.overlayFields) ? activeTemplate.overlayFields : [];
-    fields.forEach((layer) => {
-      if (layer.amountLayout) {
-        const value = values[layer.field];
-        if (typeof value !== 'string' || !value.trim()) return;
-        directCtx.save();
-        directCtx.beginPath();
-        directCtx.rect(layer.x || 0, layer.y || 0, layer.width || templateExportWidth, layer.height || 100);
-        directCtx.clip();
-        drawAmountOverlay(
-          directCtx,
-          layer,
-          value,
-          layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT,
-          layer.color,
-        );
-        directCtx.restore();
-        return;
-      }
-      const text = getOverlayText(layer, values);
-      if (!text) return;
-      const fontWeight = layer.fontWeight || 400;
-      const fontSize = layer.fontSize || 24;
-      const fontFamily = layer.fontFamily || activeTemplate.overlayFontFamily || DEFAULT_OVERLAY_FONT;
-      const color = layer.color || '#2f3b4b';
-      const align = layer.align || 'left';
-      const scaleX = layer.scaleX || 1;
-      const x = layer.x || 0;
-      const y = layer.y || 0;
-      const width = layer.width || templateExportWidth;
-      const height = layer.height || Math.ceil(fontSize * 1.2);
-
-      directCtx.fillStyle = color;
-      directCtx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-      directCtx.textAlign = align === 'right' ? 'right' : align === 'center' ? 'center' : 'left';
-      directCtx.textBaseline = 'top';
-      directCtx.save();
-      directCtx.beginPath();
-      directCtx.rect(x, y, width, height);
-      directCtx.clip();
-      if (scaleX === 1) {
-        drawTextLayer(directCtx, text, x, y, width, align);
-      } else {
-        directCtx.translate(x, y);
-        directCtx.scale(scaleX, 1);
-        drawTextLayer(directCtx, text, 0, 0, width / scaleX, align);
-      }
-      directCtx.restore();
+    renderTemplateToCanvas({
+      canvas: directCanvas,
+      template: {
+        ...activeTemplate,
+        export: {
+          width: templateExportWidth,
+          height: templateExportHeight,
+        },
+      },
+      values: getFormData(),
+      backgroundImage: bgImage,
     });
 
     return directCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
@@ -742,9 +666,23 @@ const printReceiptImage = async () => {
 const normalizeTemplate = (template) => ({
   id: template.id || `${CUSTOM_TEMPLATE_PREFIX}${Date.now()}`,
   name: template.name || 'Plantilla importada',
+  type: template.type || 'custom',
   bankBrand: template.bankBrand || 'BBVA',
   operationHeading: template.operationHeading || 'COMPROBANTE DE LA OPERACION',
   footerText: template.footerText || systemTemplates[0]?.footerText || fallbackTemplates[0].footerText,
+  layout: template.layout || 'standard',
+  style: template.style || {},
+  formGroup: template.formGroup || null,
+  defaultValues: template.defaultValues || null,
+  backgroundImage: template.backgroundImage || null,
+  backgroundImageDataUrl: template.backgroundImageDataUrl || null,
+  embeddedFonts: Array.isArray(template.embeddedFonts) ? template.embeddedFonts : [],
+  overlayFontFamily: template.overlayFontFamily || DEFAULT_OVERLAY_FONT,
+  export: {
+    width: template?.export?.width || null,
+    height: template?.export?.height || null,
+  },
+  overlayFields: Array.isArray(template.overlayFields) ? template.overlayFields : [],
 });
 
 const normalizeSystemTemplate = (template) => ({
@@ -754,7 +692,13 @@ const normalizeSystemTemplate = (template) => ({
   bankBrand: template.bankBrand || 'BBVA',
   operationHeading: template.operationHeading || 'COMPROBANTE DE LA OPERACION',
   footerText: template.footerText || fallbackTemplates[0].footerText,
+  layout: template.layout || 'standard',
+  style: template.style || {},
+  formGroup: template.formGroup || null,
+  defaultValues: template.defaultValues || null,
   backgroundImage: template.backgroundImage || null,
+  backgroundImageDataUrl: template.backgroundImageDataUrl || null,
+  embeddedFonts: Array.isArray(template.embeddedFonts) ? template.embeddedFonts : [],
   overlayFontFamily: template.overlayFontFamily || DEFAULT_OVERLAY_FONT,
   export: {
     width: template?.export?.width || null,
@@ -762,6 +706,26 @@ const normalizeSystemTemplate = (template) => ({
   },
   overlayFields: Array.isArray(template.overlayFields) ? template.overlayFields : [],
 });
+
+const readSystemTemplateOverrides = () => {
+  try {
+    const payload = JSON.parse(localStorage.getItem(SYSTEM_TEMPLATE_OVERRIDE_KEY) || '{}');
+    return payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+  } catch (error) {
+    console.warn('No se pudieron leer las ediciones del diseñador:', error);
+    return {};
+  }
+};
+
+const applySystemTemplateOverrides = (templates) => {
+  const overrides = readSystemTemplateOverrides();
+  return templates.map((baseTemplate) => {
+    const override = overrides[baseTemplate.id];
+    return override
+      ? normalizeSystemTemplate({ ...baseTemplate, ...override, id: baseTemplate.id })
+      : baseTemplate;
+  });
+};
 
 const loadSystemTemplatesFromFiles = async () => {
   try {
@@ -780,10 +744,10 @@ const loadSystemTemplatesFromFiles = async () => {
       }),
     );
 
-    systemTemplates = loaded.length ? loaded : [...fallbackTemplates];
+    systemTemplates = applySystemTemplateOverrides(loaded.length ? loaded : [...fallbackTemplates]);
   } catch (error) {
     console.warn('Fallo carga de plantillas desde archivos, usando fallback:', error);
-    systemTemplates = [...fallbackTemplates];
+    systemTemplates = applySystemTemplateOverrides([...fallbackTemplates]);
   }
 };
 
@@ -831,19 +795,48 @@ const initialize = async () => {
   if (appVersion) appVersion.textContent = APP_VERSION;
   await loadSystemTemplatesFromFiles();
   customTemplates = JSON.parse(localStorage.getItem(TEMPLATE_STORAGE_KEY) || '[]').map(normalizeTemplate);
-  renderTemplateOptions();
+  activeUserProfile = localStorage.getItem(SELECTED_USER_STORAGE_KEY) || 'usuario-1';
+  if (userProfileSelect) userProfileSelect.value = activeUserProfile;
+  const requestedTemplateId = new URLSearchParams(window.location.search).get('template');
   const savedDraft = JSON.parse(localStorage.getItem(DRAFT_STORAGE_KEY) || 'null');
-  const initialData = savedDraft || sampleReceipt;
-  const template = getTemplateById(initialData.templateId);
+  const baseData = savedDraft || sampleReceipt;
+  const template = getTemplateById(requestedTemplateId || baseData.templateId);
+  const initialData = requestedTemplateId
+    ? { ...sampleReceipt, ...(template.defaultValues || {}), templateId: template.id }
+    : baseData;
+  renderTemplateOptions(template.id);
   fillTemplateFields(template);
-  setFormData({ ...initialData, templateId: template.id });
+  setFormData({ ...initialData, userProfile: activeUserProfile, templateId: template.id });
+  applyUserDefaults(activeUserProfile);
+  applyCurrentDateTime();
+  await ensureTemplateFontsAvailable(template);
   updatePreview();
   ensureLogoAvailable();
 };
 
 form.addEventListener('input', () => { saveStatus.textContent = 'Actualizando…'; updatePreview(); });
+form.addEventListener('input', () => saveUserDefaultsFromForm());
+userProfileSelect?.addEventListener('change', () => {
+  saveUserDefaultsFromForm(activeUserProfile);
+  activeUserProfile = userProfileSelect.value;
+  localStorage.setItem(SELECTED_USER_STORAGE_KEY, activeUserProfile);
+  setFormData({ userProfile: activeUserProfile });
+  applyUserDefaults(activeUserProfile);
+  applyCurrentDateTime();
+  updatePreview();
+  saveStatus.textContent = `Perfil ${userProfileSelect.selectedOptions[0]?.textContent || ''} cargado`;
+});
 templateSelect.addEventListener('change', handleTemplateChange);
-loadSampleButton.addEventListener('click', () => { renderTemplateOptions(sampleReceipt.templateId); setFormData(sampleReceipt); updatePreview(); });
+loadSampleButton.addEventListener('click', () => {
+  const template = getTemplateById(templateSelect.value);
+  const defaults = template.defaultValues || sampleReceipt;
+  renderTemplateOptions(template.id);
+  fillTemplateFields(template);
+  setFormData({ ...sampleReceipt, ...defaults, userProfile: activeUserProfile, templateId: template.id });
+  applyUserDefaults(activeUserProfile);
+  applyCurrentDateTime();
+  updatePreview();
+});
 saveTemplateButton.addEventListener('click', saveCustomTemplate);
 deleteTemplateButton.addEventListener('click', deleteCustomTemplate);
 exportTemplatesButton.addEventListener('click', exportCustomTemplates);
@@ -852,6 +845,19 @@ downloadButton.addEventListener('click', downloadReceipt);
 mobileDownloadButton.addEventListener('click', downloadReceipt);
 printButton.addEventListener('click', printReceiptImage);
 mobilePrintButton.addEventListener('click', printReceiptImage);
+window.addEventListener('storage', async (event) => {
+  if (event.key !== SYSTEM_TEMPLATE_OVERRIDE_KEY) return;
+  const currentData = getFormData();
+  const currentTemplateId = currentData.templateId;
+  await loadSystemTemplatesFromFiles();
+  const refreshedTemplate = getTemplateById(currentTemplateId);
+  renderTemplateOptions(refreshedTemplate.id);
+  fillTemplateFields(refreshedTemplate);
+  setFormData({ ...currentData, templateId: refreshedTemplate.id });
+  await ensureTemplateFontsAvailable(refreshedTemplate);
+  updatePreview();
+  saveStatus.textContent = 'Edición del diseñador aplicada';
+});
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     const registrations = await navigator.serviceWorker.getRegistrations();
