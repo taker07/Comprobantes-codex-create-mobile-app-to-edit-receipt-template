@@ -14,6 +14,7 @@ const CUSTOM_TEMPLATE_PREFIX = 'custom-';
 const JPEG_QUALITY = 0.92;
 
 const BUILT_IN_FONTS = [
+  { label: 'Inter BBVA', value: '"Inter BBVA", Inter, sans-serif' },
   { label: 'Montserrat Banorte', value: '"Montserrat Banorte", Montserrat, sans-serif' },
   { label: 'Segoe UI', value: '"Segoe UI", Arial, sans-serif' },
   { label: 'Arial', value: 'Arial, sans-serif' },

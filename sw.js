@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comprobantes-v17';
+const CACHE_NAME = 'comprobantes-v18';
 const ASSETS = [
   '.',
   'index.html',
@@ -21,6 +21,8 @@ const ASSETS = [
   'templates/assets/bbva-share.jpg',
   'templates/assets/fonts/Montserrat-Variable.ttf',
   'templates/assets/fonts/Montserrat-OFL.txt',
+  'templates/assets/fonts/Inter-Variable.ttf',
+  'templates/assets/fonts/Inter-OFL.txt',
 ];
 
 self.addEventListener('install', (event) => {

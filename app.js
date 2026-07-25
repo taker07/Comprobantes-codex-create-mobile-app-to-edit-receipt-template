@@ -23,6 +23,7 @@ const mobilePrintButton = document.querySelector('#mobilePrintButton');
 const exportTemplatesButton = document.querySelector('#exportTemplates');
 const importTemplatesInput = document.querySelector('#importTemplatesInput');
 const templateOverlay = document.querySelector('#templateOverlay');
+const templatePreviewCanvas = document.querySelector('#templatePreviewCanvas');
 const appVersion = document.querySelector('#appVersion');
 const templateHelp = document.querySelector('#templateHelp');
 const dataGroups = document.querySelectorAll('[data-field-group]');
@@ -34,7 +35,7 @@ const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
 const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
 const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.3.0';
+const APP_VERSION = 'v1.3.1';
 
 const fallbackTemplates = [
   {
@@ -97,6 +98,8 @@ const LOGO_PRIMARY_SRC = 'bbva-logo.png';
 const LOGO_FALLBACK_SRC = 'bbva-logo.svg';
 let resolvedLogoDataUrl = null;
 const templateAssetDataUrlCache = new Map();
+const decodedTemplateImageCache = new Map();
+let backgroundPreviewRenderId = 0;
 const EXPORT_SETTINGS = {
   format: 'image/jpeg',
   quality: 0.92,
@@ -337,6 +340,20 @@ const resolveAssetDataUrl = async (assetPath) => {
   }
 };
 
+const decodeTemplateImage = (source) => {
+  if (!source) return Promise.resolve(null);
+  if (decodedTemplateImageCache.has(source)) return decodedTemplateImageCache.get(source);
+
+  const imagePromise = new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = source;
+  });
+  decodedTemplateImageCache.set(source, imagePromise);
+  return imagePromise;
+};
+
 const updateTemplateControls = () => {
   const canDelete = isCustomTemplate(getFormData().templateId);
   saveTemplateButton.textContent = canDelete ? 'Actualizar plantilla' : 'Añadir plantilla';
@@ -344,6 +361,7 @@ const updateTemplateControls = () => {
 };
 
 const updatePreview = () => {
+  const previewRenderId = ++backgroundPreviewRenderId;
   const data = getFormData();
   const template = getTemplateFromForm();
   const activeTemplate = getSelectedTemplate();
@@ -362,7 +380,7 @@ const updatePreview = () => {
   preview.querySelector('[data-preview="bankName"]').textContent = data.bankName || 'Cuenta BBVA';
   preview.querySelector('[data-preview="destinationAccount"]').textContent = data.destinationAccount || '•0000';
   preview.querySelector('[data-preview="footerText"]').textContent = template.footerText;
-  preview.classList.remove('template-background');
+  preview.classList.remove('template-background', 'canvas-preview-ready');
   preview.style.backgroundImage = '';
   preview.style.aspectRatio = '';
   if (templateOverlay) templateOverlay.innerHTML = '';
@@ -387,12 +405,29 @@ const updatePreview = () => {
     preview.classList.add('template-background');
     Promise.resolve(
       activeTemplate.backgroundImageDataUrl || resolveAssetDataUrl(activeTemplate.backgroundImage),
-    ).then((bgDataUrl) => {
+    ).then(async (bgDataUrl) => {
+      if (previewRenderId !== backgroundPreviewRenderId) return;
       if (!bgDataUrl) {
         saveStatus.textContent = 'Error: fondo de plantilla no disponible';
         return;
       }
       preview.style.backgroundImage = `url("${bgDataUrl}")`;
+
+      if (!templatePreviewCanvas) return;
+      const backgroundImage = await decodeTemplateImage(bgDataUrl);
+      if (!backgroundImage || previewRenderId !== backgroundPreviewRenderId) return;
+
+      renderTemplateToCanvas({
+        canvas: templatePreviewCanvas,
+        template: activeTemplate,
+        values: data,
+        backgroundImage,
+      });
+      if (previewRenderId === backgroundPreviewRenderId) {
+        preview.classList.add('canvas-preview-ready');
+      }
+    }).catch((error) => {
+      console.warn('No se pudo renderizar la vista previa exacta:', error);
     });
 
     const width = activeTemplate?.export?.width || 1010;
@@ -665,6 +700,7 @@ const printReceiptImage = async () => {
 
 const normalizeTemplate = (template) => ({
   id: template.id || `${CUSTOM_TEMPLATE_PREFIX}${Date.now()}`,
+  revision: Number.isFinite(Number(template.revision)) ? Number(template.revision) : 0,
   name: template.name || 'Plantilla importada',
   type: template.type || 'custom',
   bankBrand: template.bankBrand || 'BBVA',
@@ -687,6 +723,7 @@ const normalizeTemplate = (template) => ({
 
 const normalizeSystemTemplate = (template) => ({
   id: template.id || `default-${Date.now()}`,
+  revision: Number.isFinite(Number(template.revision)) ? Number(template.revision) : 0,
   name: template.name || 'Plantilla',
   type: template.type || 'default',
   bankBrand: template.bankBrand || 'BBVA',
@@ -721,9 +758,13 @@ const applySystemTemplateOverrides = (templates) => {
   const overrides = readSystemTemplateOverrides();
   return templates.map((baseTemplate) => {
     const override = overrides[baseTemplate.id];
-    return override
-      ? normalizeSystemTemplate({ ...baseTemplate, ...override, id: baseTemplate.id })
-      : baseTemplate;
+    if (!override) return baseTemplate;
+
+    const baseRevision = Number(baseTemplate.revision) || 0;
+    const overrideRevision = Number(override.revision) || 0;
+    if (baseRevision > overrideRevision) return baseTemplate;
+
+    return normalizeSystemTemplate({ ...baseTemplate, ...override, id: baseTemplate.id });
   });
 };
 
