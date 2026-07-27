@@ -35,7 +35,7 @@ const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
 const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
 const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.3.1';
+const APP_VERSION = 'v1.3.2';
 
 const fallbackTemplates = [
   {
@@ -54,39 +54,39 @@ const sampleReceipt = {
   bankBrand: 'BBVA',
   operationHeading: 'COMPROBANTE DE LA OPERACION',
   operationType: 'Transferencia a otros bancos',
-  folio: '3805688541',
-  dateText: '23 julio 2026',
-  timeText: '13:28 h',
-  concept: 'trans',
-  trackingKey: 'MBAN01002607230077445947',
-  amountText: '$ 10.00',
-  sourceAccount: '•5639',
-  beneficiaryName: 'Jacqueline Beatriz mendez lop',
-  bankName: 'Cuenta MERCADO PAGO W',
-  destinationAccount: '•7157',
+  folio: '0000000000',
+  dateText: '1 enero 2026',
+  timeText: '12:00 h',
+  concept: 'Pago',
+  trackingKey: 'CLAVE00000000000000000000000',
+  amountText: '$ 100.00',
+  sourceAccount: '•0000',
+  beneficiaryName: 'NOMBRE DEL BENEFICIARIO',
+  bankName: 'BANCO DESTINO',
+  destinationAccount: '•0000',
   verificationUrl: 'https://www.banxico.org.mx/cep/',
   clarificationUrl: 'www.bbva.mx',
-  amountDisplay: '$ 2,800.00 MN',
-  destinatarioNombre: 'DAVID M**** M**** M****',
-  destinatarioBanco: 'BANORTE',
-  sourceAccountSuffix: '0185',
-  destinationCardSuffix: '5963',
-  conceptoTransferencia: 'David Morales porton',
-  aliasDestinatario: 'porton',
-  operationDateTime: '25-05-2026 - 17:49:00',
-  detailAmount: '$ 900.00 MN',
-  detailDateTime: '08-07-2026 - 13:47:21',
-  detailDestinationAccount: 'Tarjeta ****9756',
-  detailDestinationBank: 'BANCOPPEL',
-  detailSourceAccount: 'CUENTA ENLACE PERSONAL SALDO\nPROMEDIO ****9358',
-  detailSender: 'Joel Daniel Morales Mendez',
-  detailSenderRfc: 'MOMJ911127ND1',
+  amountDisplay: '$ 1,000.00 MN',
+  destinatarioNombre: 'NOMBRE DEL DESTINATARIO',
+  destinatarioBanco: 'BANCO DESTINO',
+  sourceAccountSuffix: '0000',
+  destinationCardSuffix: '0000',
+  conceptoTransferencia: 'PAGO',
+  aliasDestinatario: 'DESTINATARIO',
+  operationDateTime: '01-01-2026 - 12:00:00',
+  detailAmount: '$ 100.00 MN',
+  detailDateTime: '01-01-2026 - 12:00:00',
+  detailDestinationAccount: 'Tarjeta ****0000',
+  detailDestinationBank: 'BANCO DESTINO',
+  detailSourceAccount: 'CUENTA DE ORIGEN\n****0000',
+  detailSender: 'NOMBRE DEL ORDENANTE',
+  detailSenderRfc: 'XAXX010101000',
   detailCommission: '$0.00 MN',
   detailTax: '$0.00 MN',
-  detailConcept: 'Tsuro',
-  detailReference: '260708',
+  detailConcept: 'Pago',
+  detailReference: '000000',
   detailOperationType: 'Transferencia única',
-  detailTrackingKey: '38432P01202607085512974778',
+  detailTrackingKey: 'CLAVE00000000000000000000000',
   footerText:
     'BBVA México, S.A., Institución de Banca Múltiple, Grupo Financiero BBVA México. Avenida Paseo de la Reforma 510, colonia Juárez, código postal 06600, alcaldía Cuauhtémoc, Ciudad de México.',
 };
@@ -671,13 +671,70 @@ const captureReceiptImage = async () => {
 
   return outputCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
 };
+
+const getReadyPreviewImageDataUrl = () => {
+  const activeTemplate = getSelectedTemplate();
+  const usesBackground = Boolean(activeTemplate?.backgroundImage || activeTemplate?.backgroundImageDataUrl);
+  const previewIsReady = preview.classList.contains('canvas-preview-ready');
+  if (!usesBackground || !previewIsReady || !templatePreviewCanvas?.width || !templatePreviewCanvas?.height) {
+    return null;
+  }
+  return templatePreviewCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
+};
+
+const dataUrlToBlob = (dataUrl) => {
+  const [header, encodedData = ''] = String(dataUrl).split(',');
+  const mimeType = header.match(/^data:([^;,]+)/)?.[1] || 'image/jpeg';
+  const binary = atob(encodedData);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type: mimeType });
+};
+
+const isAppleMobileBrowser = () =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+const saveReceiptFile = async (dataUrl) => {
+  const filename = 'comprobante.jpg';
+  const blob = dataUrlToBlob(dataUrl);
+  const isAppleMobile = isAppleMobileBrowser();
+
+  if (isAppleMobile && typeof File === 'function' && navigator.share && navigator.canShare) {
+    const file = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'Comprobante' });
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        console.warn('No se pudo abrir el guardado nativo de iPhone:', error);
+      }
+    }
+  }
+
+  const objectUrl = isAppleMobile ? null : URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl || dataUrl;
+  link.download = filename;
+  link.rel = 'noopener';
+  if (isAppleMobile) link.target = '_blank';
+  link.style.position = 'fixed';
+  link.style.left = '-9999px';
+  link.style.opacity = '0';
+  document.body.append(link);
+  link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+
+  window.setTimeout(() => {
+    link.remove();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }, 1500);
+};
+
 const downloadReceipt = async () => {
   try {
-    const dataUrl = await captureReceiptImage();
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = 'comprobante.jpg';
-    link.click();
+    const dataUrl = getReadyPreviewImageDataUrl() || (await captureReceiptImage());
+    await saveReceiptFile(dataUrl);
   } catch (error) {
     console.error(error);
     alert(error?.message || 'No se pudo exportar la imagen. Intenta de nuevo.');
@@ -701,6 +758,9 @@ const printReceiptImage = async () => {
 const normalizeTemplate = (template) => ({
   id: template.id || `${CUSTOM_TEMPLATE_PREFIX}${Date.now()}`,
   revision: Number.isFinite(Number(template.revision)) ? Number(template.revision) : 0,
+  defaultValuesRevision: Number.isFinite(Number(template.defaultValuesRevision))
+    ? Number(template.defaultValuesRevision)
+    : 0,
   name: template.name || 'Plantilla importada',
   type: template.type || 'custom',
   bankBrand: template.bankBrand || 'BBVA',
@@ -724,6 +784,9 @@ const normalizeTemplate = (template) => ({
 const normalizeSystemTemplate = (template) => ({
   id: template.id || `default-${Date.now()}`,
   revision: Number.isFinite(Number(template.revision)) ? Number(template.revision) : 0,
+  defaultValuesRevision: Number.isFinite(Number(template.defaultValuesRevision))
+    ? Number(template.defaultValuesRevision)
+    : 0,
   name: template.name || 'Plantilla',
   type: template.type || 'default',
   bankBrand: template.bankBrand || 'BBVA',
@@ -764,7 +827,15 @@ const applySystemTemplateOverrides = (templates) => {
     const overrideRevision = Number(override.revision) || 0;
     if (baseRevision > overrideRevision) return baseTemplate;
 
-    return normalizeSystemTemplate({ ...baseTemplate, ...override, id: baseTemplate.id });
+    const mergedTemplate = { ...baseTemplate, ...override, id: baseTemplate.id };
+    const baseDefaultsRevision = Number(baseTemplate.defaultValuesRevision) || 0;
+    const overrideDefaultsRevision = Number(override.defaultValuesRevision) || 0;
+    if (baseDefaultsRevision > overrideDefaultsRevision) {
+      mergedTemplate.defaultValues = baseTemplate.defaultValues;
+      mergedTemplate.defaultValuesRevision = baseDefaultsRevision;
+    }
+
+    return normalizeSystemTemplate(mergedTemplate);
   });
 };
 

@@ -1,5 +1,6 @@
 {
   "id": "banorte",
+  "defaultValuesRevision": 1,
   "name": "Banorte (base)",
   "type": "background",
   "formGroup": "banorte-summary",
@@ -8,6 +9,16 @@
   "export": {
     "width": 1010,
     "height": 1600
+  },
+  "defaultValues": {
+    "amountDisplay": "$ 1,000.00 MN",
+    "destinatarioNombre": "NOMBRE DEL DESTINATARIO",
+    "destinatarioBanco": "BANCO DESTINO",
+    "sourceAccountSuffix": "0000",
+    "destinationCardSuffix": "0000",
+    "conceptoTransferencia": "PAGO",
+    "aliasDestinatario": "DESTINATARIO",
+    "operationDateTime": "01-01-2026 - 12:00:00"
   },
   "overlayFields": [
     {

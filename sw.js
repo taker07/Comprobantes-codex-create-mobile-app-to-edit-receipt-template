@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comprobantes-v18';
+const CACHE_NAME = 'comprobantes-v19';
 const ASSETS = [
   '.',
   'index.html',
