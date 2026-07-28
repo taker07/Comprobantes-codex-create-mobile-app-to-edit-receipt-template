@@ -35,7 +35,7 @@ const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
 const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
 const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.3.2';
+const APP_VERSION = 'v1.3.3';
 
 const fallbackTemplates = [
   {
@@ -100,6 +100,8 @@ let resolvedLogoDataUrl = null;
 const templateAssetDataUrlCache = new Map();
 const decodedTemplateImageCache = new Map();
 let backgroundPreviewRenderId = 0;
+let readyPreviewBackgroundImage = null;
+let readyPreviewBackgroundKey = '';
 const EXPORT_SETTINGS = {
   format: 'image/jpeg',
   quality: 0.92,
@@ -403,6 +405,13 @@ const updatePreview = () => {
 
   if (usesBackground) {
     preview.classList.add('template-background');
+    const backgroundKey = `${activeTemplate.id}|${
+      activeTemplate.backgroundImageDataUrl || activeTemplate.backgroundImage || ''
+    }`;
+    if (readyPreviewBackgroundKey !== backgroundKey) {
+      readyPreviewBackgroundImage = null;
+      readyPreviewBackgroundKey = '';
+    }
     Promise.resolve(
       activeTemplate.backgroundImageDataUrl || resolveAssetDataUrl(activeTemplate.backgroundImage),
     ).then(async (bgDataUrl) => {
@@ -424,6 +433,8 @@ const updatePreview = () => {
         backgroundImage,
       });
       if (previewRenderId === backgroundPreviewRenderId) {
+        readyPreviewBackgroundImage = backgroundImage;
+        readyPreviewBackgroundKey = backgroundKey;
         preview.classList.add('canvas-preview-ready');
       }
     }).catch((error) => {
@@ -675,10 +686,27 @@ const captureReceiptImage = async () => {
 const getReadyPreviewImageDataUrl = () => {
   const activeTemplate = getSelectedTemplate();
   const usesBackground = Boolean(activeTemplate?.backgroundImage || activeTemplate?.backgroundImageDataUrl);
-  const previewIsReady = preview.classList.contains('canvas-preview-ready');
-  if (!usesBackground || !previewIsReady || !templatePreviewCanvas?.width || !templatePreviewCanvas?.height) {
+  if (!usesBackground || !templatePreviewCanvas?.width || !templatePreviewCanvas?.height) {
     return null;
   }
+
+  const backgroundKey = `${activeTemplate.id}|${
+    activeTemplate.backgroundImageDataUrl || activeTemplate.backgroundImage || ''
+  }`;
+  if (readyPreviewBackgroundImage && readyPreviewBackgroundKey === backgroundKey) {
+    // Read and draw the form again inside the download gesture. On iPhone the
+    // decimal key can finish updating the input immediately before the tap.
+    renderTemplateToCanvas({
+      canvas: templatePreviewCanvas,
+      template: activeTemplate,
+      values: getFormData(),
+      backgroundImage: readyPreviewBackgroundImage,
+    });
+    preview.classList.add('canvas-preview-ready');
+  } else if (!preview.classList.contains('canvas-preview-ready')) {
+    return null;
+  }
+
   return templatePreviewCanvas.toDataURL(EXPORT_SETTINGS.format, EXPORT_SETTINGS.quality);
 };
 
