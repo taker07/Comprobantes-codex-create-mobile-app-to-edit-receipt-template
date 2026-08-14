@@ -7,6 +7,7 @@ import {
   renderTemplateToCanvas,
   splitAmountDisplay,
 } from './template-renderer.js';
+import { formatMoneyValue } from './money-format.js';
 
 const form = document.querySelector('#receiptForm');
 const preview = document.querySelector('#receiptPreview');
@@ -35,7 +36,14 @@ const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
 const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
 const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.3.3';
+const APP_VERSION = 'v1.3.4';
+const MONEY_FIELD_FORMATS = {
+  amountText: { prefix: '$ ', suffix: '' },
+  amountDisplay: { prefix: '$ ', suffix: ' MN' },
+  detailAmount: { prefix: '$ ', suffix: ' MN' },
+  detailCommission: { prefix: '$', suffix: ' MN' },
+  detailTax: { prefix: '$', suffix: ' MN' },
+};
 
 const fallbackTemplates = [
   {
@@ -142,6 +150,80 @@ const getTemplateById = (templateId) => getTemplates().find((t) => t.id === temp
 const isCustomTemplate = (templateId) => templateId?.startsWith(CUSTOM_TEMPLATE_PREFIX);
 const persistCustomTemplates = () => localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(customTemplates));
 const cloneTemplate = (template) => JSON.parse(JSON.stringify(template || {}));
+
+const getMoneyCaretIntent = (value, caretPosition) => {
+  const text = String(value ?? '');
+  const caret = Number.isInteger(caretPosition) ? caretPosition : text.length;
+  const dotIndex = text.indexOf('.');
+  const beforeCaret = text.slice(0, caret);
+
+  if (dotIndex >= 0 && caret > dotIndex) {
+    return {
+      part: 'decimal',
+      digitCount: beforeCaret.slice(dotIndex + 1).replace(/\D/g, '').length,
+    };
+  }
+
+  return { part: 'integer', digitCount: beforeCaret.replace(/\D/g, '').length };
+};
+
+const getMoneyCaretPosition = (value, format, intent) => {
+  const integerStart = format.prefix.length;
+  const dotIndex = value.indexOf('.', integerStart);
+  if (intent.part === 'decimal' && dotIndex >= 0) {
+    return Math.min(dotIndex + 1 + intent.digitCount, dotIndex + 3);
+  }
+
+  const integerEnd = dotIndex >= 0 ? dotIndex : value.length - format.suffix.length;
+  if (intent.digitCount <= 0) return integerStart;
+  let digitsSeen = 0;
+  for (let index = integerStart; index < integerEnd; index += 1) {
+    if (/\d/.test(value[index])) digitsSeen += 1;
+    if (digitsSeen === intent.digitCount) return index + 1;
+  }
+  return integerEnd;
+};
+
+const formatMoneyInput = (input, { selectDecimals = false } = {}) => {
+  const format = MONEY_FIELD_FORMATS[input?.name];
+  if (!input || !format) return;
+
+  const intent = getMoneyCaretIntent(input.value, input.selectionStart);
+  const formattedValue = formatMoneyValue(input.value, { ...format, forceDecimals: true });
+  if (input.value !== formattedValue) input.value = formattedValue;
+
+  if (document.activeElement !== input || typeof input.setSelectionRange !== 'function') return;
+  const dotIndex = formattedValue.indexOf('.');
+  if (selectDecimals && dotIndex >= 0) {
+    input.setSelectionRange(dotIndex + 1, dotIndex + 3);
+    return;
+  }
+  const caret = getMoneyCaretPosition(formattedValue, format, intent);
+  input.setSelectionRange(caret, caret);
+};
+
+const formatAllMoneyInputs = () => {
+  Object.keys(MONEY_FIELD_FORMATS).forEach((fieldName) => formatMoneyInput(form.elements[fieldName]));
+};
+
+const initializeMoneyInputs = () => {
+  Object.keys(MONEY_FIELD_FORMATS).forEach((fieldName) => {
+    const input = form.elements[fieldName];
+    if (!input) return;
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== '.' && event.key !== 'Decimal') return;
+      event.preventDefault();
+      formatMoneyInput(input, { selectDecimals: true });
+    });
+    input.addEventListener('beforeinput', (event) => {
+      if (event.inputType !== 'insertText' || event.data !== '.') return;
+      event.preventDefault();
+      formatMoneyInput(input, { selectDecimals: true });
+    });
+    input.addEventListener('input', () => formatMoneyInput(input));
+    input.addEventListener('blur', () => formatMoneyInput(input));
+  });
+};
 
 const setFormData = (data) => {
   Object.entries(data).forEach(([key, value]) => {
@@ -364,6 +446,7 @@ const updateTemplateControls = () => {
 
 const updatePreview = () => {
   const previewRenderId = ++backgroundPreviewRenderId;
+  formatAllMoneyInputs();
   const data = getFormData();
   const template = getTemplateFromForm();
   const activeTemplate = getSelectedTemplate();
@@ -1008,4 +1091,5 @@ if ('serviceWorker' in navigator) {
     }
   });
 }
+initializeMoneyInputs();
 initialize();

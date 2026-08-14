@@ -1,9 +1,10 @@
-const CACHE_NAME = 'comprobantes-v20';
+const CACHE_NAME = 'comprobantes-v21';
 const ASSETS = [
   '.',
   'index.html',
   'styles.css',
   'app.js',
+  'money-format.js',
   'template-renderer.js',
   'template-designer.html',
   'template-designer.css',
