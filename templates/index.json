@@ -14,6 +14,12 @@
       "type": "default"
     },
     {
+      "id": "banorte-detail-2",
+      "name": "Banorte detalle 2",
+      "path": "defaults/banorte.detail-2.json",
+      "type": "default"
+    },
+    {
       "id": "banorte",
       "name": "Banorte (base)",
       "path": "defaults/banorte.base.json",

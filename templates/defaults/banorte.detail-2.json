@@ -1,0 +1,116 @@
+{
+  "id": "banorte-detail-2",
+  "revision": 1,
+  "defaultValuesRevision": 1,
+  "name": "Banorte detalle 2",
+  "type": "background",
+  "formGroup": "banorte-detail-2",
+  "backgroundImage": "assets/banorte-detail-2.png",
+  "overlayFontFamily": "\"Montserrat Banorte\", Montserrat, sans-serif",
+  "export": { "width": 563, "height": 1280 },
+  "defaultValues": {
+    "detail2Amount": "$ 100.00 MN",
+    "detail2DateTime": "01/01/2026 - 12:00",
+    "detail2TrackingKey": "38432P00000000000000000000",
+    "detail2DestinationAccount": "****0000",
+    "detail2DestinationBank": "BANCO DESTINO",
+    "detail2SourceAccount": "****0000",
+    "detail2Sender": "NOMBRE DEL ORDENANTE",
+    "detail2SenderRfc": "XAXX010101000",
+    "detail2Commission": "$ 0.00 MN",
+    "detail2Tax": "$ 0.00 MN",
+    "detail2Concept": "Pago",
+    "detail2Reference": "000000",
+    "detail2OperationType": "Transferencia única",
+    "detail2RecipientEmail": "correo@ejemplo.com"
+  },
+  "overlayFields": [
+    {
+      "id": "detail2Amount", "field": "detail2Amount", "amountLayout": true,
+      "x": 149, "y": 375, "width": 266, "height": 49,
+      "currencyFontSize": 25.76, "amountFontSize": 39.32, "suffixFontSize": 25.76,
+      "currencyFontWeight": 400, "amountFontWeight": 400, "suffixFontWeight": 400,
+      "currencyOffsetY": 9.49, "amountOffsetY": 0, "suffixOffsetY": 10.17,
+      "currencyGap": 8.14, "suffixGap": 12.2,
+      "color": "#303A42", "align": "center"
+    },
+    {
+      "id": "detail2DateTime", "field": "detail2DateTime",
+      "x": 159, "y": 440, "width": 245, "height": 26,
+      "fontSize": 16.95, "fontWeight": 400,
+      "color": "#39434B", "align": "center"
+    },
+    {
+      "id": "detail2TrackingKey", "field": "detail2TrackingKey",
+      "x": 223, "y": 507, "width": 311, "height": 27,
+      "fontSize": 15.93, "fontWeight": 600, "scaleX": 0.95,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2DestinationAccount", "field": "detail2DestinationAccount",
+      "x": 237, "y": 574, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2DestinationBank", "field": "detail2DestinationBank",
+      "x": 237, "y": 641, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2SourceAccount", "field": "detail2SourceAccount",
+      "x": 237, "y": 708, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2Sender", "field": "detail2Sender",
+      "x": 237, "y": 776, "width": 297, "height": 27,
+      "fontSize": 16.95, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2SenderRfc", "field": "detail2SenderRfc",
+      "x": 237, "y": 843, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2Commission", "field": "detail2Commission",
+      "x": 237, "y": 910, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2Tax", "field": "detail2Tax",
+      "x": 237, "y": 977, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2Concept", "field": "detail2Concept",
+      "x": 237, "y": 1044, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2Reference", "field": "detail2Reference",
+      "x": 237, "y": 1111, "width": 297, "height": 27,
+      "fontSize": 17.63, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2OperationType", "field": "detail2OperationType",
+      "x": 223, "y": 1178, "width": 311, "height": 27,
+      "fontSize": 16.95, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    },
+    {
+      "id": "detail2RecipientEmail", "field": "detail2RecipientEmail",
+      "x": 237, "y": 1243, "width": 297, "height": 27,
+      "fontSize": 16.27, "fontWeight": 600,
+      "color": "#303A42", "align": "right"
+    }
+  ]
+}

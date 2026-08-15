@@ -1,4 +1,4 @@
-const CACHE_NAME = 'comprobantes-v21';
+const CACHE_NAME = 'comprobantes-v24';
 const ASSETS = [
   '.',
   'index.html',
@@ -16,9 +16,11 @@ const ASSETS = [
   'templates/index.json',
   'templates/defaults/bbva.standard.json',
   'templates/defaults/banorte.detail.json',
+  'templates/defaults/banorte.detail-2.json',
   'templates/defaults/banorte.base.json',
   'templates/assets/banorte-cb.png',
   'templates/assets/banorte-detail.jpg',
+  'templates/assets/banorte-detail-2.png',
   'templates/assets/bbva-share.jpg',
   'templates/assets/fonts/Montserrat-Variable.ttf',
   'templates/assets/fonts/Montserrat-OFL.txt',

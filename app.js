@@ -36,13 +36,16 @@ const SYSTEM_TEMPLATE_OVERRIDE_KEY = 'comprobantes.systemTemplateOverrides.v1';
 const USER_DEFAULTS_STORAGE_KEY = 'comprobantes.userDefaults.v1';
 const SELECTED_USER_STORAGE_KEY = 'comprobantes.selectedUser.v1';
 const CUSTOM_TEMPLATE_PREFIX = 'custom-';
-const APP_VERSION = 'v1.3.4';
+const APP_VERSION = 'v1.4.0';
 const MONEY_FIELD_FORMATS = {
   amountText: { prefix: '$ ', suffix: '' },
   amountDisplay: { prefix: '$ ', suffix: ' MN' },
   detailAmount: { prefix: '$ ', suffix: ' MN' },
   detailCommission: { prefix: '$', suffix: ' MN' },
   detailTax: { prefix: '$', suffix: ' MN' },
+  detail2Amount: { prefix: '$ ', suffix: ' MN' },
+  detail2Commission: { prefix: '$ ', suffix: ' MN' },
+  detail2Tax: { prefix: '$ ', suffix: ' MN' },
 };
 
 const fallbackTemplates = [
@@ -142,6 +145,16 @@ const USER_DEFAULT_FIELD_NAMES = [
   'detailTax',
   'detailConcept',
   'detailOperationType',
+  'detail2DestinationAccount',
+  'detail2DestinationBank',
+  'detail2SourceAccount',
+  'detail2Sender',
+  'detail2SenderRfc',
+  'detail2Commission',
+  'detail2Tax',
+  'detail2Concept',
+  'detail2OperationType',
+  'detail2RecipientEmail',
 ];
 
 const getFormData = () => Object.fromEntries(new FormData(form).entries());
@@ -247,6 +260,7 @@ const getCurrentDateTimeValues = (date = new Date()) => {
     timeText: `${hours}:${minutes} h`,
     operationDateTime: `${day}-${padDatePart(date.getMonth() + 1)}-${year} - ${hours}:${minutes}:${seconds}`,
     detailDateTime: `${day}-${padDatePart(date.getMonth() + 1)}-${year} - ${hours}:${minutes}:${seconds}`,
+    detail2DateTime: `${day}/${padDatePart(date.getMonth() + 1)}/${year} - ${hours}:${minutes}`,
   };
 };
 
